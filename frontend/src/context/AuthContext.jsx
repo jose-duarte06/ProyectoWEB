@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import api from "../services/api";
 
 const AuthCtx = createContext();
+const url = `${WS_URL}?token=${encodeURIComponent(`Bearer ${token}`)}`;
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);

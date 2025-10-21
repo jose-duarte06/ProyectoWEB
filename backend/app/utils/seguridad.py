@@ -12,7 +12,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/usuarios/login")
 pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 
 
-
 def verificar_contrasena(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 

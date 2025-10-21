@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from ..database import SessionLocal
 from ..models.producto import Producto
 from ..models.usuario import Usuario
@@ -18,6 +19,7 @@ def get_db():
 
 # Crear producto
 @router.post("/", response_model=ProductoRespuesta)
+@router.post("", response_model=ProductoRespuesta)
 def crear_producto(
     producto: ProductoCrear,
     db: Session = Depends(get_db),
@@ -33,8 +35,18 @@ def crear_producto(
 
 # Listar productos
 @router.get("/", response_model=list[ProductoRespuesta])
-def listar_productos(db: Session = Depends(get_db)):
-    return db.query(Producto).all()
+@router.get("", response_model=list[ProductoRespuesta])
+def listar_productos(
+    db: Session = Depends(get_db),
+    q: str | None = None,
+    limit: int = Query(12, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    query = db.query(Producto)
+    if q:
+        like = f"%{q}%"
+        query = query.filter(or_(Producto.nombre.ilike(like), Producto.descripcion.ilike(like)))
+    return query.order_by(Producto.id.desc()).limit(limit).offset(offset).all()
 
 # Obtener producto por ID
 @router.get("/{producto_id}", response_model=ProductoRespuesta)
@@ -59,7 +71,7 @@ def actualizar_producto(
     data = datos.model_dump(mode="json")
     for key, value in data.items():
         setattr(p, key, value)
-    db.commit()
+    db.commit();
     db.refresh(p)
     return p
 

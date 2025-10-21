@@ -25,6 +25,7 @@ export default function Navbar() {
         {user && <Link to="/pedidos">Mis pedidos</Link>}
         {/*solo para administradores*/}
         {user?.rol === "administrador" && <Link to="/admin">Admin</Link>}
+        {user && <Link to="/support">Soporte</Link>}
         <div style={{ marginLeft: "auto" }}>
             {user ? (
             <>

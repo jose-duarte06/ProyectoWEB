@@ -9,6 +9,7 @@ import ProductDetail from "./pages/ProductDetail.jsx";
 import Cart from "./pages/Cart.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import Orders from "./pages/Orders.jsx";
+import Support from "./pages/suport.jsx";
 
 
 function Protected({ children, role }) {
@@ -56,7 +57,14 @@ export default function App() {
               </Protected>
             }
           />
-          {/* aquí luego: /productos, /carrito, /checkout, /pedidos, /support */}
+          <Route
+            path="/support"
+            element={
+              <Protected>
+                <Support />
+              </Protected>
+            }
+          />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

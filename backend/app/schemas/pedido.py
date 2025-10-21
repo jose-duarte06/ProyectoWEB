@@ -13,7 +13,7 @@ class PedidoCrear(BaseModel):
 
 class DetalleRespuesta(DetalleCrear):
     id: int
-
+    
     class Config:
         from_attributes = True
 

@@ -8,5 +8,6 @@ class ProductoCrear(BaseModel):
 
 class ProductoRespuesta(ProductoCrear):
     id: int
+
     class Config:
         from_attributes = True

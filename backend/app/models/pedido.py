@@ -10,7 +10,6 @@ class Pedido(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False)
     fecha = Column(DateTime, default=datetime.utcnow)
     total = Column(Float, nullable=False)
-    estado = Column(String, default="pendiente")
-
+    estado = Column(String, default="abierto")
     usuario = relationship("Usuario", back_populates="pedidos")
     detalles = relationship("DetallePedido", back_populates="pedido", cascade="all, delete-orphan")

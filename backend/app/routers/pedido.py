@@ -38,9 +38,11 @@ def crear_pedido(
         )
         db.add(detalle)
     db.commit()
+
     pedido = (
         db.query(Pedido)
         .options(joinedload(Pedido.detalles))
+        .filter(Pedido.id == nuevo_pedido.id)
         .first()
     )
     return pedido
