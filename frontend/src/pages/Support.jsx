@@ -115,9 +115,6 @@ export default function Support() {
             />
             <button disabled={!connected || !input.trim()}>Enviar</button>
         </form>
-        <div style={{ fontSize: 12, color: "#666" }}>
-            Tip: si recibes “El servicio de IA no está configurado en el servidor.”, falta <code>OPENAI_API_KEY</code> en el backend.
-        </div>
         </div>
     );
 }

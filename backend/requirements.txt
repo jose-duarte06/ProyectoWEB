@@ -8,3 +8,7 @@ pydantic
 python-dotenv
 openai>=1.40.0
 tiktoken>=0.7.0
+faiss-cpu>=1.8.0
+numpy>=1.26.0
+pypdf>=4.2.0
+python-multipart

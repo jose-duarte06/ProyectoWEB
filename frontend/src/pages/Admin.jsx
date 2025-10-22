@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../services/api";
 import ProductsAdmin from "./admin/Products.jsx";
 import OrdersAdmin from "./admin/Orders.jsx";
+import AdminDocs from "./admin/AdminDocs.jsx";
 
 export default function Admin() {
     const [me, setMe] = useState(null);
@@ -22,6 +23,7 @@ export default function Admin() {
         <div style={{ display: "flex", gap: 8, margin: "12px 0" }}>
             <button onClick={() => setTab("productos")}>Productos</button>
             <button onClick={() => setTab("pedidos")}>Pedidos</button>
+            <button onClick={() => setTab("docs")}>Documentación</button>
             {/* Próximas pestañas:
                 
                 <button onClick={() => setTab("chats")}>Chats</button>
@@ -31,6 +33,8 @@ export default function Admin() {
 
         {tab === "productos" && <ProductsAdmin />}
         {tab === "pedidos" && <OrdersAdmin />}
+        {tab === "docs" && <AdminDocs />}
+
         </div>
     );
 }

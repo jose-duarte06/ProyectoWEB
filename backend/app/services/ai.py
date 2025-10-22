@@ -16,7 +16,7 @@ def ask_openai(messages: List[Dict[str, str]], context: Optional[str] = None) ->
     context: texto opcional (RAG) que se adjunta al prompt del sistema
     """
     if client is None:
-        raise RuntimeError("OPENAI_API_KEY no configurado")
+        raise RuntimeError("El servicio de IA no está disponible")
     sys = SYSTEM_PROMPT if not context else f"{SYSTEM_PROMPT}\n\nContexto:\n{context}"
     msgs = [{"role": "system", "content": sys}] + messages
 

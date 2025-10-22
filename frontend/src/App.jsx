@@ -9,7 +9,7 @@ import ProductDetail from "./pages/ProductDetail.jsx";
 import Cart from "./pages/Cart.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import Orders from "./pages/Orders.jsx";
-import Support from "./pages/suport.jsx";
+import Support from "./pages/Support.jsx";
 
 
 function Protected({ children, role }) {

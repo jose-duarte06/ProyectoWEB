@@ -5,7 +5,7 @@ from typing import Literal, List
 Role = Literal["user", "assistant", "system"]
 
 class ChatMessageIn(BaseModel):
-    content: str = Field(..., min_length=1, max_length=4000)
+    content: str #Field(..., min_length=1, max_length=4000)
 
 class ChatMessageOut(BaseModel):
     id: int
