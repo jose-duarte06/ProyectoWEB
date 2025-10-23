@@ -53,6 +53,8 @@ export default function Login() {
         {err && <p style={{ color: "crimson" }}>{err}</p>}
         
         <p>¿No tienes cuenta? <Link to="/registro">Regístrate</Link></p>
+        <p><Link to="/olvide">¿Olvidaste tu contraseña?</Link></p>
+
         </div>
     );
 }

@@ -11,6 +11,7 @@ import Checkout from "./pages/Checkout.jsx";
 import Orders from "./pages/Orders.jsx";
 import Support from "./pages/Support.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
+import ForgotPassword from "./pages/ForgotPassword.jsx";
 
 
 function Protected({ children, role }) {
@@ -36,11 +37,13 @@ export default function App() {
             }
           />
           <Route path="/" element={<Login />} />
+          
           <Route path="/registro" element={<Register />} />
           <Route path="/productos" element={<ProductList />}/>
           <Route path="/productos/:id" element={<ProductDetail />}/>
           <Route path="/carrito" element={<Cart/>} />
           <Route path="/checkout" element={<Checkout/>}/>
+          
           <Route
             path="/pedidos" element={
               <Protected>
@@ -68,6 +71,8 @@ export default function App() {
           />
           <Route path="*" element={<Navigate to="/" replace />} />
           <Route path="/verificar" element={<VerifyEmail />} />
+          
+          <Route path="/olvide" element={<ForgotPassword />} />
         </Routes>
       </div>
     </>
