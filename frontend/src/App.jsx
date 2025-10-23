@@ -13,7 +13,6 @@ import Support from "./pages/Support.jsx";
 import VerifyEmail from "./pages/VerifyEmail.jsx";
 import ForgotPassword from "./pages/ForgotPassword.jsx";
 
-
 function Protected({ children, role }) {
   const { user, ready } = useAuth();
   if (!ready) return <p style={{padding:16}}>Cargando...</p>;

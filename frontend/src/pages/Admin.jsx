@@ -26,7 +26,6 @@ export default function Admin() {
             <button onClick={() => setTab("pedidos")}>Pedidos</button>
             <button onClick={() => setTab("docs")}>Documentación</button>
             <button onClick={() => setTab("analytics")}>Analítica</button>
-            <button onClick={() => setTab("chats")}>Chats</button>
         </div>
 
         {tab === "productos" && <ProductsAdmin />}

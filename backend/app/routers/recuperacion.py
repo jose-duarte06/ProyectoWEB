@@ -1,13 +1,18 @@
 from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from ..database import SessionLocal
+
 from ..models.usuario import Usuario
 from ..models.token_recuperacion import TokenRecuperacion
+
 from ..utils.seguridad import hashear_contrasena
 from ..utils.emailer import send_email
+from ..utils.rate_limit import rate_limit
+
 import secrets
 from datetime import datetime, timedelta
 from ..schemas.recuperacion import RecuperarIn, ResetIn
+
 
 router = APIRouter(prefix="/recuperacion", tags=["Recuperación"])
 
@@ -21,6 +26,10 @@ def get_db():
 @router.post("/recuperar")
 def solicitar_token(payload: RecuperarIn, bg: BackgroundTasks, db: Session = Depends(get_db)):
     correo = payload.correo
+
+    # RATE LIMIT: máx 3 tokens cada 15 min por correo
+    rate_limit(f"recuperar:{correo}", limit=3, window=900)
+
     usuario = db.query(Usuario).filter(Usuario.correo == correo).first()
     if not usuario or not usuario.is_verificado:
         return {"mensaje": "Si el correo está registrado, recibirás un token."}
@@ -50,6 +59,9 @@ def solicitar_token(payload: RecuperarIn, bg: BackgroundTasks, db: Session = Dep
 def reset_password(payload: ResetIn, db: Session = Depends(get_db)):
     token = payload.token
     nueva = payload.nueva
+
+    # RATE LIMIT: máx 5 intentos por token en 15 min
+    rate_limit(f"reset:{token}", limit=5, window=900)
 
     reg = db.query(TokenRecuperacion).filter(TokenRecuperacion.token == token).first()
     if not reg or reg.expiracion < datetime.utcnow():
