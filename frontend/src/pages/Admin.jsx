@@ -3,6 +3,7 @@ import api from "../services/api";
 import ProductsAdmin from "./admin/Products.jsx";
 import OrdersAdmin from "./admin/Orders.jsx";
 import AdminDocs from "./admin/AdminDocs.jsx";
+import AdminAnalytics from "./admin/AdminAnalytics.jsx";
 
 export default function Admin() {
     const [me, setMe] = useState(null);
@@ -24,16 +25,14 @@ export default function Admin() {
             <button onClick={() => setTab("productos")}>Productos</button>
             <button onClick={() => setTab("pedidos")}>Pedidos</button>
             <button onClick={() => setTab("docs")}>Documentación</button>
-            {/* Próximas pestañas:
-                
-                <button onClick={() => setTab("chats")}>Chats</button>
-                <button onClick={() => setTab("analytics")}>Analítica</button>
-            */}
+            <button onClick={() => setTab("analytics")}>Analítica</button>
+            <button onClick={() => setTab("chats")}>Chats</button>
         </div>
 
         {tab === "productos" && <ProductsAdmin />}
         {tab === "pedidos" && <OrdersAdmin />}
         {tab === "docs" && <AdminDocs />}
+        {tab == "analytics" && <AdminAnalytics />}
 
         </div>
     );

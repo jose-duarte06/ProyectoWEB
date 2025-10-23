@@ -25,6 +25,7 @@ from .routers import debug as debug_router
 
 #se importa websocket
 from .ws import chat as ws_chat 
+from .routers import analytics as analytics_router
 
 app = FastAPI()
 
@@ -57,3 +58,5 @@ app.include_router(chat_router.router)
 app.include_router(rag_router.router)
 app.include_router(debug_router.router)
 app.include_router(ws_chat.router)
+
+app.include_router(analytics_router.router)
