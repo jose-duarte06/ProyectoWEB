@@ -1,6 +1,6 @@
 import { useState } from "react";
 import api from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 export default function Register() {
     const [nombre, setNombre] = useState("");
@@ -8,19 +8,23 @@ export default function Register() {
     const [correo, setCorreo] = useState("");
     const [contrasena, setContrasena] = useState("");
     const [msg, setMsg] = useState("");
+    const [err, setErr] = useState("");
+    const [ok, setOk] = useState("");
     const nav = useNavigate();
 
     async function onSubmit(e) {
         e.preventDefault();
-        setMsg("");
+        setErr(""); setOk("");
         try {
-        await api.post("/usuarios/registro", {
-            nombre, apellido, correo, contrasena
-        });
-        setMsg("Usuario creado, ahora inicia sesión.");
-        setTimeout(() => nav("/"), 700);
-        } catch {
-        setMsg("Error al registrar (correo duplicado o servidor).");
+        await api.post("/usuarios/registro", { nombre, apellido, correo, contrasena });
+        // Guardamos el correo para prellenar en la verificación
+        localStorage.setItem("verify_email", correo);
+        setOk("Te enviamos un código de verificación a tu correo. Verifícalo para poder iniciar sesión.");
+        // Redirige a la pantalla de verificación
+        nav("/verificar");
+        } catch (e) {
+        const msg = e?.response?.data?.detail || "Error al registrar (correo duplicado o servidor).";
+        setErr(msg);
         }
     }
 
@@ -34,7 +38,10 @@ export default function Register() {
             <input placeholder="Contraseña" type="password" value={contrasena} onChange={e=>setContrasena(e.target.value)} />
             <button>Crear cuenta</button>
         </form>
-        {msg && <p>{msg}</p>}
+        {ok && <p style={{ color: "green" }}>{ok}</p>}
+        {err && <p style={{ color: "crimson" }}>{err}</p>}
+        <p>¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link></p>
+        
         </div>
     );
 }

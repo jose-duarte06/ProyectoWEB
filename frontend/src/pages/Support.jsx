@@ -46,9 +46,9 @@ export default function Support() {
         setConnected(false);
         setMessages(prev => [...prev, { role: "system", content: "Conexión cerrada ❌" }]);
         };
-        socket.onerror = () => {
+        /* socket.onerror = () => {
         setMessages(prev => [...prev, { role: "system", content: "Error de WebSocket" }]);
-        };
+        };*/
 
         setWs(socket);
         return () => socket.close();

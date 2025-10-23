@@ -12,3 +12,4 @@ faiss-cpu>=1.8.0
 numpy>=1.26.0
 pypdf>=4.2.0
 python-multipart
+PyJWT

@@ -1,13 +1,30 @@
 from fastapi import FastAPI
-from .database import engine, Base
-from .routers import producto, usuario, pedido 
 from fastapi.middleware.cors import CORSMiddleware 
-from .ws import chat as ws_chat 
+from sqlalchemy import text
+
+from .database import engine, Base
+
+#impartar modelos con alias
+from .models import(
+    usuario as m_usuario,
+    producto as m_producto,
+    pedido as m_pedido,
+    detalle_pedido as m_detalle_pedido,
+    chat as m_chat,
+    mensaje as m_mensaje,
+    token_recuperacion as m_token_recuperacion,
+    verificacion as m_verificacion,
+)
+from .routers import usuario as usuario_router
+from .routers import producto as producto_router
+from .routers import pedido as pedido_router
+from .routers import recuperacion as recuperacion_router
 from .routers import chat as chat_router
-from .routers import debug as debug_router
 from .routers import rag as rag_router
+from .routers import debug as debug_router
 
-
+#se importa websocket
+from .ws import chat as ws_chat 
 
 app = FastAPI()
 
@@ -23,11 +40,20 @@ app.add_middleware(
 #Crear tablas automaticamente
 Base.metadata.create_all(bind=engine)
 
+def ensure_columns():
+    with engine.begin() as conn:
+        conn.execute(text("""
+            ALTER TABLE usuarios
+            ADD COLUMN IF NOT EXISTS is_verificado BOOLEAN DEFAULT FALSE
+        """))
+ensure_columns()
+
 #incluir rutas
-app.include_router(usuario.router)
-app.include_router(producto.router)
-app.include_router(pedido.router)
-app.include_router(ws_chat.router)
+app.include_router(usuario_router.router)
+app.include_router(producto_router.router)
+app.include_router(pedido_router.router)
+app.include_router(recuperacion_router.router)
 app.include_router(chat_router.router)
-app.include_router(debug_router.router)
 app.include_router(rag_router.router)
+app.include_router(debug_router.router)
+app.include_router(ws_chat.router)

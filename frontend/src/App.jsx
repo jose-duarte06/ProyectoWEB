@@ -10,6 +10,7 @@ import Cart from "./pages/Cart.jsx";
 import Checkout from "./pages/Checkout.jsx";
 import Orders from "./pages/Orders.jsx";
 import Support from "./pages/Support.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
 
 
 function Protected({ children, role }) {
@@ -66,6 +67,7 @@ export default function App() {
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="/verificar" element={<VerifyEmail />} />
         </Routes>
       </div>
     </>
