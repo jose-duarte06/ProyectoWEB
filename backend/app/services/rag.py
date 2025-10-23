@@ -1,103 +1,142 @@
+# backend/app/services/rag.py
+# --- NEW: RAG con OpenAI embeddings + FAISS ---
 from __future__ import annotations
-from typing import List, Dict, Optional, Tuple
-import os, json
+import json
+from pathlib import Path
+from typing import List, Dict, Tuple
+
+import faiss
 import numpy as np
+from openai import OpenAI
 
-try:
-    import faiss
-except ImportError:
-    faiss = None
+from ..config import OPENAI_API_KEY
 
-from .embeddings import embed_texts
+# Rutas para índice y metadatos
+DATA_DIR = Path(__file__).resolve().parents[2] / "data"
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+INDEX_PATH = DATA_DIR / "rag.index"
+META_PATH  = DATA_DIR / "rag.meta.json"
 
-# Ruta base del índice
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-RAG_DIR = os.path.join(BASE_DIR, "..", "rag_store")
-os.makedirs(RAG_DIR, exist_ok=True)
+# Modelo de embeddings (barato y suficiente)
+EMBED_MODEL = "text-embedding-3-small"
 
-INDEX_PATH = os.path.join(RAG_DIR, "index.faiss")
-VEC_PATH   = os.path.join(RAG_DIR, "vectors.npy")    # por si quieres guardar/inspeccionar
-META_PATH  = os.path.join(RAG_DIR, "meta.json")      # lista de {"text":..., "source":...}
+_client: OpenAI | None = None
+_index: faiss.IndexFlatIP | None = None
+_meta: List[Dict] = []
 
-class RagStore:
-    def __init__(self):
-        self.index = None
-        self.meta: List[Dict] = []
-        self.dim = None
+def _client_ok() -> bool:
+    return bool(OPENAI_API_KEY and isinstance(OPENAI_API_KEY, str) and len(OPENAI_API_KEY) > 0)
 
-    def loaded(self) -> bool:
-        return self.index is not None and len(self.meta) > 0
+def _get_client() -> OpenAI:
+    global _client
+    if _client is None:
+        if not _client_ok():
+            raise RuntimeError("OPENAI_API_KEY no configurada")
+        _client = OpenAI(api_key=OPENAI_API_KEY)
+    return _client
 
-    def load(self) -> bool:
-        if faiss is None:
-            return False
-        if not (os.path.exists(INDEX_PATH) and os.path.exists(META_PATH)):
-            return False
-        self.index = faiss.read_index(INDEX_PATH)
-        with open(META_PATH, "r", encoding="utf-8") as f:
-            self.meta = json.load(f)
-        # deducir dim
-        self.dim = self.index.d
-        return True
+def _embed_texts(texts: List[str]) -> np.ndarray:
+    """
+    --- NEW: genera embeddings con OpenAI (shape: [N, D]) normalizados para IP ---
+    """
+    if not texts:
+        return np.zeros((0, 1536), dtype="float32")  # tamaño no importa si vacío
+    client = _get_client()
 
-    def save(self, vectors: np.ndarray, meta: List[Dict]):
-        """Guarda índice + metadatos."""
-        if faiss is None:
-            raise RuntimeError("FAISS no está instalado (faiss-cpu).")
-        self.dim = vectors.shape[1]
-        # usamos inner-product (equiv. cosine con vectores normalizados)
-        index = faiss.IndexFlatIP(self.dim)
-        index.add(vectors)
-        faiss.write_index(index, INDEX_PATH)
-        with open(META_PATH, "w", encoding="utf-8") as f:
-            json.dump(meta, f, ensure_ascii=False)
-        np.save(VEC_PATH, vectors)
-        self.index = index
-        self.meta = meta
+    # La API 1.x: client.embeddings.create(model=..., input=[...])
+    resp = client.embeddings.create(model=EMBED_MODEL, input=texts)
+    vecs = np.array([d.embedding for d in resp.data], dtype="float32")
 
-    def search(self, query: str, top_k: int = 4) -> List[Dict]:
-        """Devuelve lista de chunks relevantes con score."""
-        if not self.loaded():
-            if not self.load():
-                return []
-        qvec = embed_texts([query])  # (1, d)
-        D, I = self.index.search(qvec, top_k)  # D: similitud (cosine approx), I: índices
-        hits = []
-        for idx, score in zip(I[0], D[0]):
-            if idx < 0 or idx >= len(self.meta):
-                continue
-            item = self.meta[idx].copy()
-            item["score"] = float(score)
-            hits.append(item)
-        return hits
+    # Normalizar a unidad para usar IndexFlatIP como cos-sim
+    norms = np.linalg.norm(vecs, axis=1, keepdims=True) + 1e-12
+    vecs = vecs / norms
+    return vecs
 
-    def build_from_chunks(self, chunks: List[Dict[str, str]]):
-        """chunks: [{'text':..., 'source':...}, ...]"""
-        texts = [c["text"] for c in chunks]
-        vecs = embed_texts(texts)  # (n, d) normalizados
-        self.save(vecs, chunks)
+def _save_index(index: faiss.IndexFlatIP, meta: List[Dict]) -> None:
+    faiss.write_index(index, str(INDEX_PATH))
+    META_PATH.write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 
-# Singleton simple
-_store = RagStore()
+def _load_index() -> Tuple[faiss.IndexFlatIP | None, List[Dict]]:
+    if not INDEX_PATH.exists() or not META_PATH.exists():
+        return None, []
+    try:
+        idx = faiss.read_index(str(INDEX_PATH))
+        meta = json.loads(META_PATH.read_text(encoding="utf-8"))
+        return idx, meta
+    except Exception:
+        return None, []
 
 def ensure_loaded() -> bool:
-    return _store.load()
+    """
+    --- NEW: carga índice/metadata a memoria si existen ---
+    """
+    global _index, _meta
+    if _index is not None and _meta:
+        return True
+    idx, meta = _load_index()
+    if idx is None or not meta:
+        _index = None
+        _meta = []
+        return False
+    _index = idx
+    _meta = meta
+    return True
+
+def build_index(chunks: List[Dict]) -> None:
+    """
+    --- NEW: reconstruye el índice desde chunks [{id, text, meta}] ---
+    """
+    if not chunks:
+        raise RuntimeError("No hay chunks para indexar")
+
+    texts = [c["text"] for c in chunks]
+    vecs = _embed_texts(texts)  # [N, D]
+
+    # FAISS IP (dot product) con vectores normalizados ~ cos-sim
+    d = vecs.shape[1]
+    index = faiss.IndexFlatIP(d)
+    index.add(vecs)
+
+    _save_index(index, chunks)
+
+    # refresca en memoria
+    global _index, _meta
+    _index = index
+    _meta = chunks
 
 def search(query: str, top_k: int = 4) -> List[Dict]:
-    return _store.search(query, top_k)
+    """
+    --- NEW: búsqueda; retorna hits con score y metadata ---
+    """
+    if not ensure_loaded():
+        return []
+    if not query.strip():
+        return []
 
-def build_index(chunks: List[Dict[str, str]]):
-    _store.build_from_chunks(chunks)
+    qv = _embed_texts([query])  # [1, D]
+    D, I = _index.search(qv, top_k)  # scores y posiciones
 
-def compose_context(hits: List[Dict], max_chars: int = 2000) -> str:
-    """Arma un contexto concatenando trozos con su fuente."""
+    hits = []
+    for score, idx in zip(D[0].tolist(), I[0].tolist()):
+        if idx < 0 or idx >= len(_meta):
+            continue
+        item = _meta[idx]
+        hits.append({
+            "score": float(score),
+            "id": item.get("id"),
+            "text": item.get("text"),
+            "meta": item.get("meta", {})
+        })
+    return hits
+
+def compose_context(hits: List[Dict], sep: str = "\n\n---\n\n") -> str:
+    """
+    --- NEW: compone un contexto “pegado” para pasar al prompt del asistente ---
+    """
+    if not hits:
+        return ""
     parts = []
-    total = 0
     for h in hits:
-        snippet = h["text"].strip()
-        src = h.get("source", "doc")
-        block = f"[Fuente: {src}]\n{snippet}\n"
-        if total + len(block) > max_chars:
-            break
-        parts.append(block); total += len(block)
-    return "\n---\n".join(parts)
+        fn = h.get("meta", {}).get("filename", "doc")
+        parts.append(f"[{fn}] {h['text']}")
+    return sep.join(parts)

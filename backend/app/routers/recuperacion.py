@@ -19,14 +19,11 @@ def get_db():
         db.close()
 
 @router.post("/recuperar")
-def solicitar_token(payload: RecuperarIn, bg: BackgroundTasks, db: Session = Depends(get_db)):  # <-- ✅ FIX: leer JSON
-    correo = payload.correo  # <-- usar del body
+def solicitar_token(payload: RecuperarIn, bg: BackgroundTasks, db: Session = Depends(get_db)):
+    correo = payload.correo
     usuario = db.query(Usuario).filter(Usuario.correo == correo).first()
-    if not usuario:
-        # Si prefieres no revelar si existe o no, responde 200 siempre.
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    if not usuario.is_verificado:
-        raise HTTPException(status_code=403, detail="El correo no está verificado")
+    if not usuario or not usuario.is_verificado:
+        return {"mensaje": "Si el correo está registrado, recibirás un token."}
 
     prev = db.query(TokenRecuperacion).filter(TokenRecuperacion.usuario_id == usuario.id).first()
     if prev:
@@ -50,7 +47,7 @@ def solicitar_token(payload: RecuperarIn, bg: BackgroundTasks, db: Session = Dep
     return {"mensaje": "Se envió un token de recuperación al correo"}
 
 @router.post("/reset-password")
-def reset_password(payload: ResetIn, db: Session = Depends(get_db)):  # <-- ✅ FIX: leer JSON
+def reset_password(payload: ResetIn, db: Session = Depends(get_db)):
     token = payload.token
     nueva = payload.nueva
 

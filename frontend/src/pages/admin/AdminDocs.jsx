@@ -12,6 +12,7 @@ export default function AdminDocs() {
 
     const [q, setQ] = useState("");
     const [hits, setHits] = useState([]);
+    const [answer, setAnswer] = useState(""); // ← NUEVO: respuesta resumida
 
     async function fetchStatus() {
         try {
@@ -27,7 +28,7 @@ export default function AdminDocs() {
     async function onUpload(e) {
         e.preventDefault();
         if (!files?.length) return;
-        setUploading(true); setMsg(""); setHits([]);
+        setUploading(true); setMsg(""); setHits([]); setAnswer("");
         try {
         for (const file of files) {
             const form = new FormData();
@@ -46,7 +47,7 @@ export default function AdminDocs() {
     }
 
     async function onReindex() {
-        setIndexing(true); setMsg(""); setHits([]);
+        setIndexing(true); setMsg(""); setHits([]); setAnswer("");
         try {
         const r = await api.post("/rag/reindex");
         setMsg(`🧠 Índice reconstruido con ${r.data.chunks} chunks.`);
@@ -63,11 +64,12 @@ export default function AdminDocs() {
     async function onSearch(e) {
         e.preventDefault();
         if (!q.trim()) return;
-        setSearching(true); setMsg(""); setHits([]);
+        setSearching(true); setMsg(""); setHits([]); setAnswer("");
         try {
-        const r = await api.get(`/rag/search`, { params: { q, k: 4 } });
-        setHits(r.data.hits || []);
-        if (!r.data.hits?.length) setMsg("Sin resultados en el índice.");
+        const r = await api.get("/rag/search", { params: { q, k: 4 } });
+        setAnswer(r.data?.answer || "");           // ← NUEVO
+        setHits(r.data?.hits || []);
+        if (!(r.data?.hits?.length)) setMsg("Sin resultados en el índice.");
         } catch (err) {
         const status = err?.response?.status;
         setMsg(`❌ Error buscando. Status: ${status ?? "desconocido"}.`);
@@ -127,13 +129,30 @@ export default function AdminDocs() {
 
         {msg && <div style={{fontSize:14}}>{msg}</div>}
 
+        {answer && (
+            <div
+            style={{
+                background:"#e8f5e9",
+                border:"1px solid #cde8d1",
+                padding:12,
+                borderRadius:8,
+                marginTop:12
+            }}
+            >
+            <b>Respuesta:</b>
+            <div style={{marginTop:6, whiteSpace:"pre-wrap"}}>{answer}</div>
+            </div>
+        )}
+
         {!!hits.length && (
-            <div style={{border:"1px solid #eee", borderRadius:8, padding:8}}>
-            <b>Resultados:</b>
+            <div style={{border:"1px solid #eee", borderRadius:8, padding:12, marginTop:12}}>
+            <b>Referencias:</b>
             <ul>
                 {hits.map((h,i)=>(
                 <li key={i} style={{margin:"8px 0"}}>
-                    <div style={{fontSize:12, opacity:.7}}>[{(h.source||"doc")} — score {h.score?.toFixed(3)}]</div>
+                    <div style={{fontSize:12, opacity:.7}}>
+                    [{(h.source||"doc")} — score {h.score?.toFixed(3)}]
+                    </div>
                     <div style={{whiteSpace:"pre-wrap"}}>{h.text}</div>
                 </li>
                 ))}

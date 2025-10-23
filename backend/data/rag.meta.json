@@ -1,0 +1,18 @@
+[
+  {
+    "id": "Dias festivos.txt::chunk0",
+    "text": "Dias festivos o de asueto no están disponibles para contactar con un humano",
+    "meta": {
+      "filename": "Dias festivos.txt",
+      "chunk_index": 0
+    }
+  },
+  {
+    "id": "faq.txt::chunk0",
+    "text": "DEVOLUCIONES: Se aceptan dentro de 30 días con recibo. ENVÍOS: Tardan de 2 a 5 días hábiles. SOPORTE: Horario de 8:00 a 18:00, L-V. fines de semana Únicamente medio día (de 9:00 a 12:30. MES DE DICIEMBRE: se atenderá de 9:00 a 17:00 L-V, se atenderá solo días sábados medio día, a horario común, domingos no disponibles",
+    "meta": {
+      "filename": "faq.txt",
+      "chunk_index": 0
+    }
+  }
+]

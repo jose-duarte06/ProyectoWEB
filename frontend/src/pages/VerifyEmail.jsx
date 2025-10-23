@@ -24,7 +24,7 @@ export default function VerifyEmail() {
         setMsg("Correo verificado. Ahora puedes iniciar sesión.");
         // opcional: borra el hint
         localStorage.removeItem("verify_email");
-        setTimeout(() => nav("/login"), 1000);
+        setTimeout(() => nav("/"), 1000);
         } catch (e) {
         const m = e?.response?.data?.detail || "Código inválido o expirado.";
         setErr(m);

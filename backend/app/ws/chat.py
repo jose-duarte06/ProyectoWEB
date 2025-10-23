@@ -61,9 +61,18 @@ async def websocket_support(websocket: WebSocket):
 
     # bienvenida
     welcome_text = "¡Hola! Soy el asistente. ¿En qué te ayudo?"
-    welcome_msg = ChatMessage(sesion_id=sesion.id, role="assistant", content=welcome_text)
-    db.add(welcome_msg); db.commit()
-    await safe_send_json(websocket, {"role": "assistant", "content": welcome_text})
+    welcome_msg = ChatMessage(
+        sesion_id=sesion.id,
+        role="assistant",
+        content=welcome_text
+    )
+    db.add(welcome_msg)
+    db.commit()
+    db.refresh(welcome_msg)
+
+    # enviar al cliente con la utilidad segura
+    await safe_send_json(websocket, {"role": "assistant", "content": welcome_msg.content})
+
     # bucle de mensajes
     try:
         while True:
@@ -73,7 +82,7 @@ async def websocket_support(websocket: WebSocket):
                 continue
 
             msg_user = ChatMessage(sesion_id=sesion.id, role="user", content=user_text)
-            db.add(msg_user); db.commit()
+            db.add(msg_user); db.commit(); db.refresh(msg_user)
 
             try:
                 hits = rag_search(user_text, top_k=4)
@@ -83,10 +92,10 @@ async def websocket_support(websocket: WebSocket):
                     context=ctx
                 )
             except RuntimeError:
-                answer = "El servicio de IA no está configurado en el servidor."
+                answer = "El servicio de IA no está disponible."
 
             msg_ai = ChatMessage(sesion_id=sesion.id, role="assistant", content=answer)
-            db.add(msg_ai); db.commit()
+            db.add(msg_ai); db.commit(); db.refresh(msg_ai)
 
             await websocket.send_json({"role": "assistant", "content": answer})
 
