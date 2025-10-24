@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+// src/App.jsx
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
@@ -15,18 +16,33 @@ import ForgotPassword from "./pages/ForgotPassword.jsx";
 
 function Protected({ children, role }) {
   const { user, ready } = useAuth();
-  if (!ready) return <p style={{padding:16}}>Cargando...</p>;
+  if (!ready) return <p style={{ padding: 16 }}>Cargando...</p>;
   if (!user) return <Navigate to="/" replace />;
   if (role && user.rol !== role) return <Navigate to="/" replace />;
   return children;
 }
 
 export default function App() {
+  const location = useLocation();
+  // Rutas “auth” donde NO queremos navbar ni padding
+  const authRoutes = ["/", "/registro", "/verificar", "/olvide"];
+  const isAuthRoute = authRoutes.includes(location.pathname);
+
   return (
     <>
-      <Navbar />
-      <div style={{ padding: "16px" }}>
+      {!isAuthRoute && <Navbar />}
+      <div style={{ padding: isAuthRoute ? 0 : "16px" }}>
         <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/registro" element={<Register />} />
+          <Route path="/verificar" element={<VerifyEmail />} />
+          <Route path="/olvide" element={<ForgotPassword />} />
+
+          <Route path="/productos" element={<ProductList />} />
+          <Route path="/productos/:id" element={<ProductDetail />} />
+          <Route path="/carrito" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+
           <Route
             path="/pedidos"
             element={
@@ -35,23 +51,7 @@ export default function App() {
               </Protected>
             }
           />
-          <Route path="/" element={<Login />} />
-          
-          <Route path="/registro" element={<Register />} />
-          <Route path="/productos" element={<ProductList />}/>
-          <Route path="/productos/:id" element={<ProductDetail />}/>
-          <Route path="/carrito" element={<Cart/>} />
-          <Route path="/checkout" element={<Checkout/>}/>
-          
-          <Route
-            path="/pedidos" element={
-              <Protected>
-                <Orders>
-                </Orders>
-              </Protected>
-            }>
 
-          </Route>
           <Route
             path="/admin"
             element={
@@ -60,6 +60,7 @@ export default function App() {
               </Protected>
             }
           />
+
           <Route
             path="/support"
             element={
@@ -68,13 +69,10 @@ export default function App() {
               </Protected>
             }
           />
+
           <Route path="*" element={<Navigate to="/" replace />} />
-          <Route path="/verificar" element={<VerifyEmail />} />
-          
-          <Route path="/olvide" element={<ForgotPassword />} />
         </Routes>
       </div>
     </>
   );
 }
-

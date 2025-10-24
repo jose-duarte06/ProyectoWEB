@@ -1,60 +1,100 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import api from "../services/api.js";
-
+import "./Login.css"; // 👈 estilos de esta pantalla
 
 export default function Login() {
     const [correo, setCorreo] = useState("");
     const [contrasena, setContrasena] = useState("");
+    const [remember, setRemember] = useState(true);
     const [err, setErr] = useState("");
     const { login } = useAuth();
     const nav = useNavigate();
 
-    
     async function onSubmit(e) {
         e.preventDefault();
         setErr("");
+
         try {
-            await login(correo, contrasena);
-            // ...
-            } catch (e) {
-            const status = e?.response?.status;
-            const msg = e?.response?.data?.detail || "Error iniciando sesión";
-            if (status === 403) {
-                localStorage.setItem("verify_email", correo); // para precargar
-                // muestra mensaje claro
-                setErr(msg + ". Revisa tu correo e ingresa el código.");
-                // opcional: nav("/verificar");
-            } else {
-                setErr(msg);
+        await login(correo, contrasena);
+
+        // ✔ Si no quiere recordar sesión, mover el token a sessionStorage
+        if (!remember) {
+            const tok = localStorage.getItem("token");
+            if (tok) {
+            sessionStorage.setItem("token", tok);
+            localStorage.removeItem("token");
             }
+        }
+
+        // Redirige a productos (o a lo que prefieras)
+        nav("/productos");
+        } catch (e) {
+        const status = e?.response?.status;
+        const msg = e?.response?.data?.detail || "Error iniciando sesión";
+        if (status === 403) {
+            localStorage.setItem("verify_email", correo);
+            setErr(msg + ". Revisa tu correo e ingresa el código.");
+        } else {
+            setErr(msg);
+        }
         }
     }
 
     return (
-        <div style={{ maxWidth: 420, margin: "40px auto" }}>
-        <br></br>
-        <h2>Iniciar sesión</h2>
-        <form onSubmit={onSubmit} style={{ display: "grid", gap: 8 }}>
-            <input
-            placeholder="Correo"
-            value={correo}
-            onChange={e => setCorreo(e.target.value)}
-            />
-            <input
-            placeholder="Contraseña"
-            type="password"
-            value={contrasena}
-            onChange={e => setContrasena(e.target.value)}
-            />
-            <button>Entrar</button>
-        </form>
-        {err && <p style={{ color: "crimson" }}>{err}</p>}
-        
-        <p>¿No tienes cuenta? <Link to="/registro">Regístrate</Link></p>
-        <p><Link to="/olvide">¿Olvidaste tu contraseña?</Link></p>
+        <div className="login-wrap">
+        <div className="card">
+            <div className="logo">
+            <img src="/imagenes/LogoMotekaRacing.png" alt="Moteka" />
+            </div>
 
+            <form onSubmit={onSubmit} className="form">
+            <label className="label">
+                Correo / Usuario <span className="req">*</span>
+            </label>
+            <input
+                className="input"
+                placeholder="ejemplo@moteka.com o admin"
+                value={correo}
+                onChange={(e) => setCorreo(e.target.value)}
+            />
+
+            <label className="label">
+                Contraseña <span className="req">*</span>
+            </label>
+            <input
+                className="input"
+                type="password"
+                placeholder="Ingrese su contraseña"
+                value={contrasena}
+                onChange={(e) => setContrasena(e.target.value)}
+            />
+
+            <div className="row">
+                <label className="remember">
+                <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                />
+                Recordar sesión
+                </label>
+
+                <Link className="link" to="/olvide">
+                ¿Olvidó su contraseña?
+                </Link><p>¿No tienes cuenta? <Link to="/registro">Regístrate</Link></p>
+        
+            </div>
+
+            <button className="btn" type="submit">
+                Iniciar Sesión
+            </button>
+            </form>
+
+            {err && <div className="error">{err}</div>}
+
+            <div className="footer">© 2025 Moteka Management System.</div>
+        </div>
         </div>
     );
 }

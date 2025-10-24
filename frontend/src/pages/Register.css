@@ -1,0 +1,120 @@
+.auth-wrap {
+    min-height: 100dvh;
+    display: grid;
+    place-items: center;
+    background: #000000; /* mismo tono que Login */
+    padding: 24px;
+}
+
+/* Tarjeta */
+.auth-card {
+    width: 100%;
+    max-width: 760px;
+    background: linear-gradient(180deg, #121212 0%, #0f0f0f 100%);
+    border: 1px solid #1a1a1a;
+    border-radius: 14px;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, .45);
+    padding: 34px 30px 26px;
+    color: #d8d8d8;
+}
+
+/* Logo */
+.auth-logo {
+    display: grid;
+    place-items: center;
+    margin-top: -8px;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 18px rgba(220, 38, 38, .45));
+}
+.auth-logo img {
+    width: 350px;
+    height: 250px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 18px rgba(220, 38, 38, 0.5));
+}
+
+/* Títulos */
+.auth-title {
+    margin: 0;
+    text-align: center;
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: .3px;
+}
+.auth-sub {
+    text-align: center;
+    margin-top: 6px;
+    opacity: .7;
+}
+
+/* Formulario */
+.auth-form {
+    margin-top: 22px;
+    display: grid;
+    gap: 14px;
+}
+.auth-label {
+    font-size: 13px;
+    opacity: .85;
+    display: grid;
+    gap: 6px;
+}
+.auth-input {
+    width: 100%;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    outline: none;
+}
+
+/* Mostrar/ocultar contraseña */
+.pwd-field {
+    position: relative;
+}
+.pwd-toggle {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    opacity: .8;
+    background: transparent;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+/* Botón principal */
+.auth-btn {
+    margin-top: 6px;
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 10px;
+    border: none;
+    background: #e44646;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+}
+.auth-btn:disabled { opacity: .7; cursor: default; }
+
+/* Mensajes */
+.auth-ok { color: #35d399; font-size: 14px; text-align: center; }
+.auth-err { color: #ff6b6b; font-size: 14px; white-space: pre-wrap; }
+
+/* Pie */
+.auth-help {
+    margin-top: 10px;
+    text-align: center;
+    font-size: 13px;
+    opacity: .8;
+}
+
+/* Responsive pequeño */
+@media (max-width: 480px) {
+    .auth-card { padding: 26px 20px 20px; }
+    .auth-title { font-size: 30px; }
+    .auth-logo img { width: 82px; height: 82px; }
+}

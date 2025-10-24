@@ -1,0 +1,146 @@
+.login-wrap {
+    min-height: 100vmax;
+    display: grid;
+    place-items: center;
+    background: radial-gradient(1200px 600px at 50% -10%, #000000 0%, #000000 60%, #000000 100%);
+    padding: 2px;
+}
+body{
+    background-color: black;
+}
+
+/* Tarjeta */
+.card {
+    width: 100%;
+    max-width: 720px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 28px 28px 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+    color: #eaeaea;
+}
+
+/* Logo con aura roja */
+.logo {
+    display: grid;
+    place-items: center;
+    margin-top: 6px;
+    margin-bottom: 6px;
+}
+.logo img {
+    width: 350px;
+    height: 300px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 18px rgba(220, 38, 38, 0.5));
+}
+
+/* Títulos */
+.brand {
+    text-align: center;
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    margin: 6px 0 4px;
+}
+.subtitle {
+    text-align: center;
+    font-size: 18px;
+    opacity: 0.9;
+    margin: 0;
+}
+.caption {
+    text-align: center;
+    font-size: 14px;
+    opacity: 0.7;
+    margin-top: 6px;
+}
+
+/* Formulario */
+.form {
+    display: grid;
+    gap: 10px;
+    margin-top: 18px;
+}
+.label {
+    font-size: 13px;
+    opacity: 0.85;
+}
+.req {
+    color: #ef4444;
+}
+.input {
+    padding: 12px 14px;
+    background: #0b0b0b;
+    border: 1px solid #1f1f1f;
+    border-radius: 10px;
+    color: #eaeaea;
+    outline: none;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.input::placeholder {
+    color: #6b6b6b;
+}
+.input:focus {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+/* Fila inferior */
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 6px;
+}
+.remember {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    opacity: 0.9;
+}
+.link {
+    font-size: 14px;
+    color: #c8c8ff;
+    text-decoration: none;
+}
+.link:hover {
+    text-decoration: underline;
+}
+
+/* Botón primario */
+.btn {
+    margin-top: 8px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: none;
+    background: #ef4444;
+    color: white;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    transition: filter 100ms ease, transform 60ms ease;
+}
+.btn:hover {
+    filter: brightness(1.05);
+}
+.btn:active {
+    transform: translateY(1px);
+}
+
+/* Error y pie */
+.error {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #ffd8d8;
+    background: rgba(239, 68, 68, 0.12);
+    border-radius: 10px;
+}
+.footer {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 12px;
+    opacity: 0.6;
+}

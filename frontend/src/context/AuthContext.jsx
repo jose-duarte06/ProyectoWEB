@@ -7,42 +7,64 @@ const AuthCtx = createContext();
 function applyToken(tok) {
     if (tok) {
         api.defaults.headers.common["Authorization"] = `Bearer ${tok}`;
-        localStorage.setItem("token", tok);
     } else {
         delete api.defaults.headers.common["Authorization"];
-        localStorage.removeItem("token");
     }
-}
+    }
 
     export function AuthProvider({ children }) {
-    const [user, setUser]   = useState(null);
+    const [user, setUser] = useState(null);
     const [token, setToken] = useState("");
     const [ready, setReady] = useState(false);
 
     useEffect(() => {
-        const saved = localStorage.getItem("token") || "";
-        if (!saved) { setReady(true); return; }
+        // lee de localStorage O de sessionStorage
+        const saved =
+        localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+
+        if (!saved) {
+        setReady(true);
+        return;
+        }
+
         applyToken(saved);
         setToken(saved);
-        api.get("/usuarios/perfil")
-        .then(r => setUser(r.data))
-        .catch(() => { applyToken(""); setToken(""); setUser(null); })
+
+        api
+        .get("/usuarios/perfil")
+        .then((r) => setUser(r.data))
+        .catch(() => {
+            applyToken("");
+            setToken("");
+            setUser(null);
+            // limpia ambos por si acaso
+            localStorage.removeItem("token");
+            sessionStorage.removeItem("token");
+        })
         .finally(() => setReady(true));
     }, []);
 
-    async function login(correo, contrasena) {
+    async function login(correo, contrasena, remember = true) {
         // 1) obtener token
         const r = await api.post("/usuarios/login", { correo, contrasena });
         const newToken = r.data.access_token;
 
-        // 2) aplicarlo de inmediato al header + storage
+        // 2) setear header
         applyToken(newToken);
         setToken(newToken);
 
-        // 3) pedir perfil (una única vez)
+        // 3) persistencia según remember (true -> localStorage ; false -> sessionStorage)
+        if (remember) {
+        localStorage.setItem("token", newToken);
+        sessionStorage.removeItem("token");
+        } else {
+        sessionStorage.setItem("token", newToken);
+        localStorage.removeItem("token");
+        }
+
+        // 4) pedir perfil
         const me = await api.get("/usuarios/perfil");
         setUser(me.data);
-        // ready ya está en true por el flujo normal; si quieres forzar:
         setReady(true);
     }
 
@@ -50,6 +72,9 @@ function applyToken(tok) {
         applyToken("");
         setToken("");
         setUser(null);
+        // limpia ambos
+        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
     }
 
     return (

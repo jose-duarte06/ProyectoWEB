@@ -5,7 +5,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use(cfg => {
-    const t = localStorage.getItem("token");
+    const t = localStorage.getItem("token") || sessionStorage.getItem("token") ;
     if (t) cfg.headers.Authorization = `Bearer ${t}`;
     return cfg;
 });
@@ -16,6 +16,7 @@ api.interceptors.response.use(
     err => {
         if (err?.response?.status === 401) {
         localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         // muestra un aviso con toast
         window.location.href = "/"; // vuelve a login
         }
