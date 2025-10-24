@@ -1,0 +1,97 @@
+.orders-admin { display: grid; gap: 16px; }
+.error { color:#ef4444; }
+.muted { color:#b9bec9; }
+.center { text-align:center; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+/* KPIs */
+.orders-kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(160px,1fr));
+    gap: 12px;
+}
+.kpi {
+    background:#171616; border:1px solid #2a1a1a; border-radius:14px;
+    padding:12px; box-shadow:0 8px 18px rgba(0,0,0,.45);
+}
+.kpi .kpi-label { font-size:13px; color:#dadada; opacity:.75; }
+.kpi .kpi-value { font-size:26px; font-weight:800; color:#fff; margin-top:4px; }
+.kpi.ok    { border-color:#164e27; }
+.kpi.info  { border-color:#1d4ed8; }
+.kpi.warn  { border-color:#854d0e; }
+.kpi.bad   { border-color:#7f1d1d; }
+
+/* Toolbar */
+.orders-toolbar {
+    display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+}
+.in {
+    background:#101010; color:#f5f5f5; border:1px solid #2b2b2b; border-radius:12px;
+    padding:9px 12px; outline:none;
+}
+.in.small { padding:6px 8px; border-radius:10px; }
+.range { display:flex; gap:8px; align-items:center; color:#cbd5e1; font-size:13px; }
+.btn {
+    padding:9px 14px; border-radius:12px; border:1px solid #2b2b2b;
+    background:#1a1a1a; color:#f3f3f3; cursor:pointer;
+}
+.btn:hover { filter:brightness(1.1); }
+.btn.ghost { background:transparent; border-color:#2b2b2b; }
+
+/* Tabla */
+.table-wrap { overflow:auto; border:1px solid #231616; border-radius:14px; }
+.tbl { width:100%; border-collapse:collapse; min-width:840px; }
+.tbl th, .tbl td { padding:12px; border-bottom:1px solid #241515; }
+.tbl thead th { text-align:left; background:#171616; color:#fff; position:sticky; top:0; }
+.tbl tbody tr:hover { background:#151313; }
+.tbl td.act { display:flex; gap:8px; align-items:center; }
+
+/* Badges */
+.badge {
+    padding:4px 10px; border-radius:999px; font-weight:700; font-size:12px;
+    background:#e2e8f0; color:#334155; border:1px solid #cbd5e1;
+}
+.badge.ok   { background:#dcfce7; color:#166534; border-color:#86efac; }
+.badge.info { background:#dbeafe; color:#1d4ed8; border-color:#93c5fd; }
+.badge.warn { background:#fef9c3; color:#854d0e; border-color:#fde68a; }
+.badge.bad  { background:#fee2e2; color:#991b1b; border-color:#fecaca; }
+
+/* Modal */
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.55); display:grid; place-items:center; z-index:50; }
+.modal-card {
+    width:min(920px,94vw); background:#121212; border:1px solid #2a2a2a; border-radius:18px;
+    overflow:hidden; box-shadow:0 24px 60px rgba(0,0,0,.6);
+}
+.modal-head { padding:12px 14px; border-bottom:1px solid #222; display:flex; align-items:center; justify-content:space-between; color:#fff; }
+.modal-body { padding:14px; display:grid; gap:14px; }
+.modal-actions { padding:12px 14px; border-top:1px solid #222; display:flex; justify-content:flex-end; gap:8px; }
+.icon { background:transparent; border:none; color:#9ca3af; font-size:18px; cursor:pointer; }
+
+/* Detalle */
+.detail-top {
+    display:grid; grid-template-columns: repeat(4, 1fr); gap:12px; align-items:center;
+}
+.dt-strong { font-weight:700; color:#fff; }
+.total-box { justify-self:end; text-align:right; }
+.grand { font-size:24px; font-weight:900; color:#fff; }
+
+.lines { display:grid; gap:10px; }
+.line {
+    display:grid; grid-template-columns: 64px 1fr 80px 120px 120px; gap:10px;
+    padding:8px; border:1px solid #2a2a2a; border-radius:12px; background:#0f0f0f;
+}
+.thumb { width:64px; height:64px; background:#0c0c0c; border:1px solid #222; border-radius:10px; display:grid; place-items:center; overflow:hidden; }
+.thumb img { max-width:100%; max-height:100%; object-fit:contain; }
+.ph { color:#666; font-size:12px; }
+.li-name { color:#f3f3f3; align-self:center; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.li-qty, .li-price, .li-sub { align-self:center; text-align:right; }
+
+@media (max-width: 980px) {
+    .orders-kpis { grid-template-columns: repeat(3, 1fr); }
+    .detail-top { grid-template-columns: 1fr 1fr; }
+    .line { grid-template-columns: 48px 1fr 60px 90px 90px; }
+}
+@media (max-width: 680px) {
+    .orders-kpis { grid-template-columns: repeat(2, 1fr); }
+    .line { grid-template-columns: 40px 1fr 50px 80px 80px; }
+    }

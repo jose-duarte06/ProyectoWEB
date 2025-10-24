@@ -1,0 +1,93 @@
+/* Contenedor general */
+.admin-shell {
+  min-height: 100dvh;
+  background: #0a0a0a;
+  color: #e6e6e6;
+  padding: 0 18px 28px;
+}
+
+/* Header */
+.admin-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(8px);
+  background: rgba(10,10,10,0.65);
+  border-bottom: 1px solid #191919;
+  padding: 14px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.admin-title h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin: 0;
+}
+.admin-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #34d399;
+  box-shadow: 0 0 18px rgba(52,211,153,0.55);
+}
+
+.admin-user { font-size: 14px; opacity: .9; }
+.admin-user b { color: #fff; }
+.admin-user-ghost { opacity: .6; }
+
+/* Tabs */
+.admin-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #171717;
+  padding: 12px 4px 10px;
+  position: sticky;
+  top: 52px;    /* debajo del header sticky */
+  background: #0a0a0a;
+  z-index: 15;
+}
+
+.admin-tab {
+  appearance: none;
+  background: #111;
+  color: #cfcfcf;
+  border: 1px solid #1d1d1d;
+  border-radius: 9px;
+  padding: 10px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform .06s ease, border-color .2s ease, background .2s ease;
+}
+.admin-tab:hover {
+  transform: translateY(-1px);
+  border-color: #2b2b2b;
+}
+.admin-tab.active {
+  background: #e44646;
+  color: #fff;
+  border-color: #e44646;
+  box-shadow: 0 10px 30px rgba(228,70,70,.25);
+}
+
+/* Contenido */
+.admin-content {
+  padding: 16px 6px 0;
+}
+
+/* Mensaje de error */
+.admin-error {
+  margin: 10px 6px 0;
+  padding: 10px 12px;
+  border: 1px solid #3a1414;
+  background: #1a0c0c;
+  color: #ff8a8a;
+  border-radius: 10px;
+  font-size: 14px;
+}

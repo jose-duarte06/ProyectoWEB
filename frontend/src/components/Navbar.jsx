@@ -1,18 +1,17 @@
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { useCart } from "../context/CartContext.jsx";
 
 export default function Navbar() {
+    const loc = useLocation();
+
+    if (loc.pathname.startsWith("/admin")) return null;
+
     const { user, logout } = useAuth();
     const { count } = useCart();
     const nav = useNavigate();
 
     const onLogout = () => { logout(); nav("/"); };
-
-    /*function onLogout() {
-        logout();
-        nav("/");
-    }*/
 
     return (
         <nav style={{
@@ -20,10 +19,8 @@ export default function Navbar() {
         borderBottom: "1px solid #eee", alignItems: "center"
         }}>
         <Link to="/productos">Productos</Link>
-        <Link to="/carrito">Carrito ({count}) </Link>
-        {/*link visible solo para usuarios logueados*/}
+        <Link to="/carrito">Carrito ({count})</Link>
         {user && <Link to="/pedidos">Mis pedidos</Link>}
-        {/*solo para administradores*/}
         {user?.rol === "administrador" && <Link to="/admin">Admin</Link>}
         {user && <Link to="/support">Soporte</Link>}
         <div style={{ marginLeft: "auto" }}>
@@ -32,7 +29,7 @@ export default function Navbar() {
                 <span style={{ marginRight: 12 }}>
                 {user.nombre} ({user.rol})
                 </span>
-                <button onClick={onLogout}>Cerrar Sesion</button>
+                <button onClick={onLogout}>Cerrar Sesión</button>
             </>
             ) : <span>Invitado</span>}
         </div>

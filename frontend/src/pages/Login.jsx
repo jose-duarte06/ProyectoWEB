@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import "./Login.css"; // 👈 estilos de esta pantalla
+import api from "../services/api";
+import "./Login.css";
 
 export default function Login() {
     const [correo, setCorreo] = useState("");
@@ -18,7 +19,7 @@ export default function Login() {
         try {
         await login(correo, contrasena);
 
-        // ✔ Si no quiere recordar sesión, mover el token a sessionStorage
+        // Si no quiere recordar sesión, mover token de localStorage -> sessionStorage
         if (!remember) {
             const tok = localStorage.getItem("token");
             if (tok) {
@@ -27,8 +28,17 @@ export default function Login() {
             }
         }
 
-        // Redirige a productos (o a lo que prefieras)
-        nav("/productos");
+        // Redirige según rol
+        try {
+            const me = await api.get("/usuarios/perfil");
+            if (me?.data?.rol === "administrador") {
+            nav("/admin?tab=analytics");
+            } else {
+            nav("/productos");
+            }
+        } catch {
+            nav("/productos");
+        }
         } catch (e) {
         const status = e?.response?.status;
         const msg = e?.response?.data?.detail || "Error iniciando sesión";
@@ -80,15 +90,14 @@ export default function Login() {
                 Recordar sesión
                 </label>
 
-                <Link className="link" to="/olvide">
-                ¿Olvidó su contraseña?
-                </Link><p>¿No tienes cuenta? <Link to="/registro">Regístrate</Link></p>
-        
+                <div className="row-links">
+                <Link className="link" to="/olvide">¿Olvidó su contraseña?</Link>
+                <span className="sep">|</span>
+                <Link className="link" to="/registro">Regístrate</Link>
+                </div>
             </div>
 
-            <button className="btn" type="submit">
-                Iniciar Sesión
-            </button>
+            <button className="btn" type="submit">Iniciar Sesión</button>
             </form>
 
             {err && <div className="error">{err}</div>}

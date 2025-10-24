@@ -1,150 +1,355 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "../../services/api";
-
-const emptyForm = { nombre: "", precio: "", descripcion: "", imagen_url: "" };
+import "./Products.css";
 
 export default function ProductsAdmin() {
     const [items, setItems] = useState([]);
-    const [form, setForm] = useState(emptyForm);
-    const [editingId, setEditingId] = useState(null);
-    const [msg, setMsg] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [err, setErr] = useState("");
 
-    async function load() {
+    // formulario crear
+    const [fNombre, setFNombre] = useState("");
+    const [fPrecio, setFPrecio] = useState("");
+    const [fImg, setFImg] = useState("");
+    const [fDesc, setFDesc] = useState("");
+
+    // filtros
+    const [q, setQ] = useState("");
+    const [sort, setSort] = useState("recientes"); // 'recientes' | 'precio_asc' | 'precio_desc' | 'nombre'
+
+    // modal edición
+    const [editOpen, setEditOpen] = useState(false);
+    const [edit, setEdit] = useState(null); // {id, nombre, precio, ...}
+
+    // borrar
+    const [confirmId, setConfirmId] = useState(null);
+
+    // -------- helpers --------
+    const normalize = (p) => ({
+        id: p.id,
+        nombre: p.nombre ?? "",
+        precio: Number(p.precio ?? 0),
+        descripcion: p.descripcion ?? "",
+        imagen_url: p.imagen_url ?? p.imagen ?? "",
+        raw: p,
+    });
+
+    const fetchAll = async () => {
+        setLoading(true);
+        setErr("");
         try {
         const r = await api.get("/productos");
-        setItems(r.data);
-        } catch {
-        setMsg("No se pudo cargar el listado de productos.");
+        setItems((r.data || []).map(normalize));
+        } catch (e) {
+        setErr(e?.response?.data?.detail || "No se pudieron cargar los productos.");
+        } finally {
+        setLoading(false);
         }
-    }
+    };
 
-    useEffect(() => { load(); }, []);
+    useEffect(() => {
+        fetchAll();
+    }, []);
 
-    function onChange(e) {
-        const { name, value } = e.target;
-        setForm((f) => ({ ...f, [name]: value }));
-    }
+    // -------- crear --------
+    const createDisabled = !fNombre.trim() || Number(fPrecio) <= 0;
 
-    async function onSubmit(e) {
-        e.preventDefault();
-        setMsg("");
-        const payload = {
-        nombre: form.nombre.trim(),
-        precio: Number(form.precio),
-        descripcion: form.descripcion.trim(),
-        imagen_url: form.imagen_url.trim() || null,
-        };
+    async function createProduct(e) {
+        e?.preventDefault?.();
+        if (createDisabled) return;
         try {
-        if (editingId) {
-            await api.put(`/productos/${editingId}`, payload);
-            setMsg("Producto actualizado.");
-        } else {
-            await api.post(`/productos`, payload);
-            setMsg("Producto creado.");
-        }
-        setForm(emptyForm);
-        setEditingId(null);
-        await load();
-        } catch {
-        setMsg("Error guardando el producto (revisa permisos o payload).");
+        const payload = {
+            nombre: fNombre.trim(),
+            precio: Number(fPrecio),
+            descripcion: fDesc.trim(),
+            imagen_url: fImg.trim(),
+        };
+        await api.post("/productos", payload);
+        setFNombre("");
+        setFPrecio("");
+        setFImg("");
+        setFDesc("");
+        fetchAll();
+        } catch (e) {
+        alert(e?.response?.data?.detail || "Error creando producto");
         }
     }
 
-    function onEdit(p) {
-        setEditingId(p.id);
-        setForm({
-        nombre: p.nombre ?? "",
-        precio: p.precio ?? "",
-        descripcion: p.descripcion ?? "",
-        imagen_url: p.imagen_url ?? "",
+    // -------- editar --------
+    function openEdit(p) {
+        setEdit({
+        id: p.id,
+        nombre: p.nombre,
+        precio: p.precio,
+        descripcion: p.descripcion,
+        imagen_url: p.imagen_url || "",
         });
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        setEditOpen(true);
     }
 
-    async function onDelete(id) {
-        if (!confirm("¿Eliminar este producto?")) return;
-        setMsg("");
+    async function saveEdit() {
+        if (!edit) return;
+        try {
+        const payload = {
+            nombre: (edit.nombre || "").trim(),
+            precio: Number(edit.precio || 0),
+            descripcion: (edit.descripcion || "").trim(),
+            imagen_url: (edit.imagen_url || "").trim(),
+        };
+        await api.put(`/productos/${edit.id}`, payload);
+        setEditOpen(false);
+        setEdit(null);
+        fetchAll();
+        } catch (e) {
+        alert(e?.response?.data?.detail || "Error actualizando producto");
+        }
+    }
+
+    // -------- eliminar --------
+    async function doDelete(id) {
         try {
         await api.delete(`/productos/${id}`);
-        setMsg("Producto eliminado.");
-        await load();
-        } catch {
-        setMsg("No se pudo eliminar (quizá falta permiso o hay relaciones).");
+        setConfirmId(null);
+        fetchAll();
+        } catch (e) {
+        alert(e?.response?.data?.detail || "Error eliminando producto");
         }
     }
 
-    function onCancel() {
-        setEditingId(null);
-        setForm(emptyForm);
-    }
+    // -------- lista filtrada/ordenada --------
+    const filtered = useMemo(() => {
+        let list = items;
+        if (q.trim()) {
+        const s = q.toLowerCase();
+        list = list.filter(
+            (p) =>
+            p.nombre.toLowerCase().includes(s) ||
+            p.descripcion.toLowerCase().includes(s)
+        );
+        }
+        switch (sort) {
+        case "precio_asc":
+            list = [...list].sort((a, b) => a.precio - b.precio);
+            break;
+        case "precio_desc":
+            list = [...list].sort((a, b) => b.precio - a.precio);
+            break;
+        case "nombre":
+            list = [...list].sort((a, b) => a.nombre.localeCompare(b.nombre));
+            break;
+        default:
+            list = [...list].sort((a, b) => b.id - a.id);
+        }
+        return list;
+    }, [items, q, sort]);
 
+    // -------- UI --------
     return (
-        <div style={{ padding: "1rem" }}>
-        <h2>Productos — Admin</h2>
-        {msg && <p style={{ color: "#2b7", fontWeight: 600 }}>{msg}</p>}
-
-        {/* Formulario crear/editar */}
-        <form onSubmit={onSubmit} style={{ display: "grid", gap: 8, maxWidth: 520, marginBottom: 20 }}>
+        <div className="prod-admin">
+        {/* top bar */}
+        <div className="prod-toolbar">
+            <div className="search-box">
             <input
-            name="nombre"
-            placeholder="Nombre"
-            value={form.nombre}
-            onChange={onChange}
-            required
+                placeholder="Buscar productos…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
             />
-            <input
-            name="precio"
-            placeholder="Precio (Q)"
-            type="number"
-            step="0.01"
-            value={form.precio}
-            onChange={onChange}
-            required
-            />
-            <input
-            name="imagen_url"
-            placeholder="URL de imagen (opcional)"
-            value={form.imagen_url}
-            onChange={onChange}
-            />
-            <textarea
-            name="descripcion"
-            placeholder="Descripción"
-            rows={3}
-            value={form.descripcion}
-            onChange={onChange}
-            />
-            <div style={{ display: "flex", gap: 8 }}>
-            <button type="submit">{editingId ? "Guardar cambios" : "Crear producto"}</button>
-            {editingId && <button type="button" onClick={onCancel}>Cancelar</button>}
             </div>
-        </form>
+            <div className="sort-box">
+            <label>Ordenar:</label>
+            <select value={sort} onChange={(e) => setSort(e.target.value)}>
+                <option value="recientes">Más recientes</option>
+                <option value="precio_asc">Precio ↑</option>
+                <option value="precio_desc">Precio ↓</option>
+                <option value="nombre">Nombre A–Z</option>
+            </select>
+            </div>
+        </div>
 
-        {/* Tabla */}
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-            <tr style={{ textAlign: "left" }}>
-                <th>ID</th><th>Nombre</th><th>Precio</th><th>Imagen</th><th>Acciones</th>
-            </tr>
-            </thead>
-            <tbody>
-            {items.map((p) => (
-                <tr key={p.id}>
-                <td>{p.id}</td>
-                <td>{p.nombre}</td>
-                <td>Q {Number(p.precio).toFixed(2)}</td>
-                <td>{p.imagen_url ? <img src={p.imagen_url} alt="" width={60} /> : "-"}</td>
-                <td style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => onEdit(p)}>Editar</button>
-                    <button onClick={() => onDelete(p.id)}>Eliminar</button>
-                </td>
-                </tr>
+        {/* formulario crear */}
+        <div className="panel form-panel">
+            <div className="panel-head">
+            <h4>Crear producto</h4>
+            </div>
+            <form className="grid-2" onSubmit={createProduct}>
+            <div className="field">
+                <label>Nombre *</label>
+                <input
+                value={fNombre}
+                onChange={(e) => setFNombre(e.target.value)}
+                placeholder="Nombre del producto"
+                />
+            </div>
+            <div className="field">
+                <label>Precio (Q) *</label>
+                <input
+                value={fPrecio}
+                onChange={(e) => setFPrecio(e.target.value)}
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="0.00"
+                />
+            </div>
+            <div className="field">
+                <label>URL de imagen</label>
+                <input
+                value={fImg}
+                onChange={(e) => setFImg(e.target.value)}
+                placeholder="https://…"
+                />
+            </div>
+            <div className="field">
+                <label>Descripción</label>
+                <textarea
+                rows={3}
+                value={fDesc}
+                onChange={(e) => setFDesc(e.target.value)}
+                placeholder="Breve descripción"
+                />
+            </div>
+            <div className="actions">
+                <button className="btn primary" disabled={createDisabled}>
+                Crear producto
+                </button>
+            </div>
+            </form>
+        </div>
+
+        {/* estado carga/error */}
+        {err && <div className="error">{err}</div>}
+        {loading && <div className="muted">Cargando productos…</div>}
+
+        {/* grid productos */}
+        {!loading && (
+            <div className="cards-grid">
+            {filtered.map((p) => (
+                <article key={p.id} className="card">
+                <div className="thumb-wrap">
+                    {p.imagen_url ? (
+                    <img src={p.imagen_url} alt={p.nombre} />
+                    ) : (
+                    <div className="thumb-placeholder">Sin imagen</div>
+                    )}
+                </div>
+                <div className="card-body">
+                    <div className="card-title">
+                    <h5 title={p.nombre}>{p.nombre}</h5>
+                    <span className="price">Q {p.precio.toFixed(2)}</span>
+                    </div>
+                    {p.descripcion && (
+                    <p className="desc" title={p.descripcion}>
+                        {p.descripcion}
+                    </p>
+                    )}
+                </div>
+                <div className="card-actions">
+                    <button className="btn" onClick={() => openEdit(p)}>
+                    Editar
+                    </button>
+                    <button
+                    className="btn danger"
+                    onClick={() => setConfirmId(p.id)}
+                    >
+                    Eliminar
+                    </button>
+                </div>
+
+                {/* confirmación por tarjeta */}
+                {confirmId === p.id && (
+                    <div className="confirm">
+                    <span>¿Eliminar este producto?</span>
+                    <div className="confirm-actions">
+                        <button className="btn danger" onClick={() => doDelete(p.id)}>
+                        Sí, borrar
+                        </button>
+                        <button className="btn" onClick={() => setConfirmId(null)}>
+                        Cancelar
+                        </button>
+                    </div>
+                    </div>
+                )}
+                </article>
             ))}
-            {!items.length && (
-                <tr><td colSpan={5} style={{ padding: 12 }}>No hay productos aún.</td></tr>
+
+            {!filtered.length && (
+                <div className="muted">No hay productos con ese criterio.</div>
             )}
-            </tbody>
-        </table>
+            </div>
+        )}
+
+        {/* MODAL EDICIÓN */}
+        {editOpen && edit && (
+            <div className="modal" onClick={() => setEditOpen(false)}>
+            <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-head">
+                <h4>Editar producto</h4>
+                <button className="icon" onClick={() => setEditOpen(false)}>✕</button>
+                </div>
+
+                <div className="modal-body">
+                <div className="edit-grid">
+                    <div className="field">
+                    <label>Nombre *</label>
+                    <input
+                        value={edit.nombre}
+                        onChange={(e) => setEdit({ ...edit, nombre: e.target.value })}
+                        placeholder="Nombre del producto"
+                    />
+                    </div>
+                    <div className="field">
+                    <label>Precio (Q) *</label>
+                    <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={edit.precio}
+                        onChange={(e) =>
+                        setEdit({ ...edit, precio: e.target.value })
+                        }
+                    />
+                    </div>
+                    <div className="field">
+                    <label>URL de imagen</label>
+                    <input
+                        value={edit.imagen_url}
+                        onChange={(e) =>
+                        setEdit({ ...edit, imagen_url: e.target.value })
+                        }
+                        placeholder="https://…"
+                    />
+                    </div>
+                    <div className="preview">
+                    {edit.imagen_url ? (
+                        <img src={edit.imagen_url} alt="preview" />
+                    ) : (
+                        <div className="thumb-placeholder">Vista previa</div>
+                    )}
+                    </div>
+                    <div className="field span-2">
+                    <label>Descripción</label>
+                    <textarea
+                        rows={3}
+                        value={edit.descripcion}
+                        onChange={(e) =>
+                        setEdit({ ...edit, descripcion: e.target.value })
+                        }
+                    />
+                    </div>
+                </div>
+                </div>
+
+                <div className="modal-actions">
+                <button className="btn" onClick={() => setEditOpen(false)}>
+                    Cancelar
+                </button>
+                <button className="btn primary" onClick={saveEdit}>
+                    Guardar cambios
+                </button>
+                </div>
+            </div>
+            </div>
+        )}
         </div>
     );
 }

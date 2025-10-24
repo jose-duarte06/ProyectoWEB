@@ -1,0 +1,80 @@
+.analytics { display: grid; gap: 16px; }
+.loading, .muted { opacity: .7; font-size: 14px; }
+.err { color: #ef4444; }
+
+/* ---- KPI strip (look azul) ---- */
+.kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.kpi-card {
+  background: #414141;
+  border: 1px solid #514848;
+  border-radius: 14px;
+  padding: 14px;
+  box-shadow: 0 6px 16px rgba(127, 11, 11, 0.494);
+}
+.kpi-top {
+  display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+}
+.kpi-pill {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px;
+  background: #ffd4d4; color: #000000; border: 1px solid #960a0a;
+}
+.kpi-avatar { font-size: 20px; }
+.kpi-label { color: #e3e3e3; opacity: .7; font-size: 18px; }
+.kpi-value {
+  font-size: 25px; font-weight: 800; color: #fafafa; margin-top: 3px;
+}
+
+/* ---- panels below ---- */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 1.4fr;
+  gap: 16px;
+  align-items: start;
+}
+.panel {
+  background: #1f1e1e;
+  border: 1px solid #3a1919;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 24px rgba(59, 8, 8, 0.853);
+}
+.panel-head h4 { margin: 0 0 10px 0; color: #ffffff; }
+
+/* ---- status list ---- */
+.status-list { display: grid; gap: 10px; }
+.status-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 12px; border: 1px solid #f9e6e6; border-radius: 10px; background: #f8fbff;
+}
+.status-name { text-transform: capitalize; color: #0f172a; }
+.status-badge {
+  padding: 4px 10px; border-radius: 999px; font-weight: 700; font-size: 12px;
+  background: #f0e2e2; color: #2a0f0f;
+}
+.status-badge.ok   { background:#fcdcdc; color:#166534; }
+.status-badge.warn { background:#fef9c3; color:#854d0e; }
+.status-badge.info { background:#dbeafe; color:#1d4ed8; }
+.status-badge.bad  { background:#fee2e2; color:#991b1b; }
+.status-badge.muted{ background:#e2e8f0; color:#334155; }
+
+/* ---- chart ---- */
+.legend { margin-bottom: 6px; }
+.chart-wrap { width: 100%; }
+.chart {
+  width: 100%; height: 280px; display: block;
+  border: 1px solid #eb0000; border-radius: 12px; background: #fff8f8;
+}
+
+/* responsive */
+@media (max-width: 1200px) {
+  .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+  .content-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 680px) {
+  .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+}
