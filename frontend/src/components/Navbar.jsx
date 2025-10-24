@@ -1,38 +1,43 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { useCart } from "../context/CartContext.jsx";
+import "./Navbar.css";
 
 export default function Navbar() {
+    const { user, logout } = useAuth();
+    const nav = useNavigate();
     const loc = useLocation();
 
-    if (loc.pathname.startsWith("/admin")) return null;
+    const hideOn = []; 
+    if (hideOn.includes(loc.pathname)) return null;
 
-    const { user, logout } = useAuth();
-    const { count } = useCart();
-    const nav = useNavigate();
-
-    const onLogout = () => { logout(); nav("/"); };
+    const onLogout = () => {
+        logout();
+        nav("/", { replace: true });
+    };
 
     return (
-        <nav style={{
-        display: "flex", gap: 12, padding: "12px 20px",
-        borderBottom: "1px solid #eee", alignItems: "center"
-        }}>
-        <Link to="/productos">Productos</Link>
-        <Link to="/carrito">Carrito ({count})</Link>
-        {user && <Link to="/pedidos">Mis pedidos</Link>}
-        {user?.rol === "administrador" && <Link to="/admin">Admin</Link>}
-        {user && <Link to="/support">Soporte</Link>}
-        <div style={{ marginLeft: "auto" }}>
+        <header className="topbar">
+        <div className="topbar-left">
+            <Link to={user?.rol === "administrador" ? "/admin?tab=analytics" : "/productos"} className="brand">
+            <img src="/imagenes/LogoMotekaRacing.png" alt="Moteka" />
+            </Link>
+        </div>
+
+        <nav className="topbar-right">
             {user ? (
             <>
-                <span style={{ marginRight: 12 }}>
-                {user.nombre} ({user.rol})
+                <span className="userchip">
+                {user.nombre}
+                <span className="role">{user.rol}</span>
                 </span>
-                <button onClick={onLogout}>Cerrar Sesión</button>
+                <button className="btn-logout" onClick={onLogout} title="Cerrar sesión">
+                Cerrar Sesión
+                </button>
             </>
-            ) : <span>Invitado</span>}
-        </div>
+            ) : (
+            <Link className="btn-login" to="/">Iniciar sesión</Link>
+            )}
         </nav>
+        </header>
     );
 }

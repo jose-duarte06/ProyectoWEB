@@ -1,164 +1,265 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import api from "../../services/api";
+import "./AdminDocs.css";
+
+const ACCEPTED = [".pdf", ".txt", ".md"];
+const MAX_MB = 8;
 
 export default function AdminDocs() {
     const [files, setFiles] = useState([]);
-    const [uploading, setUploading] = useState(false);
-    const [indexing, setIndexing] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [busy, setBusy] = useState(false);
+    const [err, setErr] = useState("");
+
+    // búsqueda
+    const [query, setQuery] = useState("");
     const [searching, setSearching] = useState(false);
+    const [searchRes, setSearchRes] = useState(null);
 
-    const [msg, setMsg] = useState("");
-    const [loaded, setLoaded] = useState(null);
+    // drag&drop
+    const dropRef = useRef(null);
+    const [dragOver, setDragOver] = useState(false);
 
-    const [q, setQ] = useState("");
-    const [hits, setHits] = useState([]);
-    const [answer, setAnswer] = useState(""); // ← NUEVO: respuesta resumida
-
-    async function fetchStatus() {
+    async function loadFiles() {
+        setLoading(true);
+        setErr("");
         try {
-        const r = await api.get("/rag/status");
-        setLoaded(r.data.loaded);
-        } catch {
-        setLoaded(false);
+        const r = await api.get("/rag/files");
+        setFiles(r.data?.files || []);
+        } catch (e) {
+        setErr(e?.response?.data?.detail || "No se pudieron cargar los archivos.");
+        } finally {
+        setLoading(false);
         }
     }
 
-    useEffect(() => { fetchStatus(); }, []);
+    useEffect(() => {
+        loadFiles();
+    }, []);
 
-    async function onUpload(e) {
-        e.preventDefault();
-        if (!files?.length) return;
-        setUploading(true); setMsg(""); setHits([]); setAnswer("");
-        try {
-        for (const file of files) {
-            const form = new FormData();
-            form.append("file", file);
-            await api.post("/rag/upload", form, {
-            headers: { "Content-Type": "multipart/form-data" },
-            });
+    async function onUpload(oneFile) {
+        if (!oneFile) return;
+
+        const ext = (oneFile.name || "").toLowerCase().slice(oneFile.name.lastIndexOf("."));
+        if (!ACCEPTED.includes(ext)) {
+        setErr("Formato no soportado. Usa PDF, TXT o MD.");
+        return;
         }
-        setMsg(`✅ ${files.length} archivo(s) subido(s). Ahora pulsa "Reindexar".`);
-        } catch (err) {
-        const status = err?.response?.status;
-        setMsg(`❌ Error subiendo archivo(s). Status: ${status ?? "desconocido"}.`);
+        if (oneFile.size > MAX_MB * 1024 * 1024) {
+        setErr(`Archivo mayor a ${MAX_MB}MB.`);
+        return;
+        }
+        setBusy(true);
+        setErr("");
+        try {
+        const fd = new FormData();
+        fd.append("file", oneFile);
+        await api.post("/rag/upload", fd, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+        await loadFiles();
+        } catch (e) {
+        setErr(e?.response?.data?.detail || "Error subiendo archivo.");
         } finally {
-        setUploading(false);
+        setBusy(false);
+        }
+    }
+
+    async function onDelete(name) {
+        if (!confirm(`Eliminar "${name}"?`)) return;
+        setBusy(true);
+        setErr("");
+        try {
+        await api.delete(`/rag/files/${encodeURIComponent(name)}`);
+        await loadFiles();
+        } catch (e) {
+        setErr(e?.response?.data?.detail || "No se pudo eliminar.");
+        } finally {
+        setBusy(false);
         }
     }
 
     async function onReindex() {
-        setIndexing(true); setMsg(""); setHits([]); setAnswer("");
+        if (!files.length && !confirm("No hay archivos. ¿Reindexar de todos modos?")) return;
+        setBusy(true);
+        setErr("");
         try {
-        const r = await api.post("/rag/reindex");
-        setMsg(`🧠 Índice reconstruido con ${r.data.chunks} chunks.`);
-        await fetchStatus();
-        } catch (err) {
-        const status = err?.response?.status;
-        const errMsg = err?.response?.data?.detail || "No se pudo reindexar.";
-        setMsg(`❌ Error reindexando. Status ${status ?? "?"}: ${errMsg}`);
+        await api.post("/rag/reindex");
+        // no hace falta recargar lista; ya está
+        } catch (e) {
+        setErr(e?.response?.data?.detail || "Falló el reindexado.");
         } finally {
-        setIndexing(false);
+        setBusy(false);
         }
     }
 
     async function onSearch(e) {
-        e.preventDefault();
-        if (!q.trim()) return;
-        setSearching(true); setMsg(""); setHits([]); setAnswer("");
+        e?.preventDefault?.();
+        const q = query.trim();
+        if (!q) return;
+        setSearching(true);
+        setErr("");
+        setSearchRes(null);
         try {
         const r = await api.get("/rag/search", { params: { q, k: 4 } });
-        setAnswer(r.data?.answer || "");           // ← NUEVO
-        setHits(r.data?.hits || []);
-        if (!(r.data?.hits?.length)) setMsg("Sin resultados en el índice.");
-        } catch (err) {
-        const status = err?.response?.status;
-        setMsg(`❌ Error buscando. Status: ${status ?? "desconocido"}.`);
+        setSearchRes(r.data);
+        } catch (e) {
+        setErr(e?.response?.data?.detail || "No se pudo ejecutar la búsqueda.");
         } finally {
         setSearching(false);
         }
     }
 
+    // drag handlers
+    useEffect(() => {
+        const el = dropRef.current;
+        if (!el) return;
+
+        const onDragOver = (ev) => {
+        ev.preventDefault();
+        setDragOver(true);
+        };
+        const onDragLeave = (ev) => {
+        ev.preventDefault();
+        setDragOver(false);
+        };
+        const onDrop = (ev) => {
+        ev.preventDefault();
+        setDragOver(false);
+        const f = ev.dataTransfer?.files?.[0];
+        if (f) onUpload(f);
+        };
+
+        el.addEventListener("dragover", onDragOver);
+        el.addEventListener("dragleave", onDragLeave);
+        el.addEventListener("drop", onDrop);
+        return () => {
+        el.removeEventListener("dragover", onDragOver);
+        el.removeEventListener("dragleave", onDragLeave);
+        el.removeEventListener("drop", onDrop);
+        };
+    }, []);
+
     return (
-        <div style={{display:"grid", gap:12}}>
-        <h3>Documentación (RAG)</h3>
-        <p style={{fontSize:14, opacity:.8}}>
-            Sube archivos <b>PDF / TXT / MD</b>. Luego pulsa <b>Reindexar</b> para que el bot los use.
-        </p>
-
-        <div style={{display:"flex", gap:12, alignItems:"center"}}>
-            <span style={{fontSize:13}}>Estado del índice:</span>
-            <span style={{fontWeight:600, color: loaded ? "green" : "crimson"}}>
-            {loaded === null ? "..." : loaded ? "Cargado" : "No cargado"}
-            </span>
-            <button onClick={fetchStatus} disabled={uploading || indexing || searching}>
-            Refrescar
+        <div className="docs-wrap">
+        {/* HEADER */}
+        <div className="docs-head">
+            <h3>Documentación (RAG)</h3>
+            <div className="docs-actions">
+            <button className="btn ghost" disabled={busy || loading} onClick={loadFiles}>
+                Refrescar
             </button>
-        </div>
-
-        <form onSubmit={onUpload} style={{display:"flex", gap:8, alignItems:"center"}}>
-            <input
-            type="file"
-            accept=".pdf,.txt,.md"
-            multiple
-            onChange={e => setFiles(Array.from(e.target.files))}
-            />
-            <button disabled={uploading || indexing || searching || !(files && files.length)}>
-            {uploading ? "Subiendo..." : "Subir"}
+            <button className="btn" disabled={busy || loading} onClick={onReindex}>
+                Reindexar
             </button>
-        </form>
-
-        <div style={{display:"flex", gap:8}}>
-            <button onClick={onReindex} disabled={indexing || uploading}>
-            {indexing ? "Reindexando..." : "Reindexar"}
-            </button>
-        </div>
-
-        <hr/>
-
-        <form onSubmit={onSearch} style={{display:"flex", gap:8}}>
-            <input
-            placeholder="Probar búsqueda (ej. '¿cuánto tardan los envíos?')"
-            value={q}
-            onChange={e => setQ(e.target.value)}
-            style={{flex:1, padding:"8px 10px"}}
-            />
-            <button disabled={searching || !loaded || !q.trim()}>
-            {searching ? "Buscando..." : "Buscar"}
-            </button>
-        </form>
-
-        {msg && <div style={{fontSize:14}}>{msg}</div>}
-
-        {answer && (
-            <div
-            style={{
-                background:"#e8f5e9",
-                border:"1px solid #cde8d1",
-                padding:12,
-                borderRadius:8,
-                marginTop:12
-            }}
-            >
-            <b>Respuesta:</b>
-            <div style={{marginTop:6, whiteSpace:"pre-wrap"}}>{answer}</div>
             </div>
-        )}
+        </div>
 
-        {!!hits.length && (
-            <div style={{border:"1px solid #eee", borderRadius:8, padding:12, marginTop:12}}>
-            <b>Referencias:</b>
-            <ul>
-                {hits.map((h,i)=>(
-                <li key={i} style={{margin:"8px 0"}}>
-                    <div style={{fontSize:12, opacity:.7}}>
-                    [{(h.source||"doc")} — score {h.score?.toFixed(3)}]
-                    </div>
-                    <div style={{whiteSpace:"pre-wrap"}}>{h.text}</div>
-                </li>
+        {err && <div className="alert error">{err}</div>}
+
+        {/* GRID: upload + list */}
+        <div className="docs-grid">
+            {/* UPLOAD */}
+            <section className="panel">
+            <div className="panel-head">
+                <h4>Subir archivo</h4>
+                <div className="muted">Formatos: PDF, TXT, MD — máx {MAX_MB}MB</div>
+            </div>
+
+            <div ref={dropRef} className={`dropzone ${dragOver ? "drag" : ""}`}>
+                <div className="dz-inner">
+                <br></br>
+                <div className="dz-icon">⬆️</div>
+                <div className="dz-or">Subir archivo</div>
+                <br></br>
+                <label className="btn">
+                    Elegir archivo
+                    <input
+                    type="file"
+                    accept=".pdf,.txt,.md"
+                    onChange={(e) => onUpload(e.target.files?.[0])}
+                    hidden
+                    />
+                </label>
+                </div>
+            </div>
+
+            {busy && <div className="muted">Procesando…</div>}
+            </section>
+
+            {/* FILES LIST */}
+            <section className="panel">
+            <div className="panel-head">
+                <h4>Archivos en índice</h4>
+                <div className="muted">{loading ? "Cargando…" : `${files.length} archivo(s)`}</div>
+            </div>
+
+            {loading ? (
+                <div className="muted">Cargando…</div>
+            ) : !files.length ? (
+                <div className="muted">No hay archivos.</div>
+            ) : (
+                <ul className="file-list">
+                {files.map((f) => (
+                    <li key={f} className="file-row">
+                    <div className="file-name" title={f}>{f}</div>
+                    <button className="btn danger" disabled={busy} onClick={() => onDelete(f)}>
+                        Eliminar
+                    </button>
+                    </li>
                 ))}
-            </ul>
+                </ul>
+            )}
+            </section>
+        </div>
+
+        {/* SEARCH / TEST */}
+        <section className="panel">
+            <div className="panel-head">
+            <h4>Probar búsqueda</h4>
+            <div className="muted">Haz una pregunta para ver el contexto y la respuesta</div>
             </div>
-        )}
+
+            <form className="search-row" onSubmit={onSearch}>
+            <input
+                className="input"
+                placeholder="Ej. ¿Cuál es la política de devoluciones?"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+            />
+            <button className="btn" disabled={searching || !query.trim()}>
+                {searching ? "Buscando…" : "Buscar"}
+            </button>
+            </form>
+
+            {searchRes && (
+            <div className="search-results">
+                <div className="answer">
+                <div className="answer-title">Respuesta</div>
+                <div className="answer-text">{searchRes.answer || "Sin respuesta."}</div>
+                </div>
+
+                <div className="hits">
+                <div className="hits-title">Contexto (top hits)</div>
+                {!searchRes.hits?.length ? (
+                    <div className="muted">No hay contexto disponible.</div>
+                ) : (
+                    <ul className="hits-list">
+                    {searchRes.hits.map((h, i) => (
+                        <li key={i} className="hit">
+                        <div className="hit-meta">
+                            <span className="hit-score">score {h.score?.toFixed?.(3) ?? h.score}</span>
+                            {h.meta?.filename && <span className="hit-file">{h.meta.filename}</span>}
+                        </div>
+                        <div className="hit-text">{h.text}</div>
+                        </li>
+                    ))}
+                    </ul>
+                )}
+                </div>
+            </div>
+            )}
+        </section>
         </div>
     );
-}
+    }

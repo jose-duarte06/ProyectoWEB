@@ -63,21 +63,7 @@ export default function Admin() {
 
   return (
     <div className="admin-shell">
-      {/* HEADER */}
-      <header className="admin-header">
-        <div className="admin-title">
-          <div className="admin-dot" />
-          <h2>Administración</h2>
-        </div>
-        <div className="admin-user">
-          {me ? (
-            <span>{me.nombre} — <b>{me.rol}</b></span>
-          ) : (
-            <span className="admin-user-ghost">Cargando…</span>
-          )}
-        </div>
-      </header>
-
+      
       {/* NAV TABS */}
       <nav className="admin-tabs">
         {TABS.map(t => (
