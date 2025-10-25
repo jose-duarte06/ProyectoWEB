@@ -1,0 +1,27 @@
+.quick-nav{
+  display:flex; gap:18px; align-items:center; padding:10px 0 16px;
+}
+.qtab{
+  display:inline-flex; align-items:center; gap:10px;
+  padding:14px 22px; border-radius:20px;
+  background:#171717; color:#eaeaea; font-weight:800;
+  border:1px solid #2a2a2a; text-decoration:none;
+  transition:filter .12s ease, transform .06s ease;
+}
+.qtab:hover{ filter:brightness(1.06); }
+.qtab:active{ transform:translateY(1px); }
+.qtab.active{ background:#ef4444; border-color:#b91c1c; color:#fff; box-shadow:0 8px 24px rgba(239,68,68,.28); }
+
+.badge{
+  display:inline-grid; place-items:center;
+  min-width:24px; height:24px; padding:0 6px;
+  border-radius:999px; font-size:12px; font-weight:800;
+  background:#111; color:#fff; border:1px solid #444;
+}
+
+.quick-back{
+  display:flex; gap:10px; margin:6px 0 10px;
+}
+.btn.ghost{
+  background:#121212; border:1px solid #2a2a2a; color:#e5e7eb;
+}

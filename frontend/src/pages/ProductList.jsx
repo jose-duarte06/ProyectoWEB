@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
+import QuickNav from "../components/QuickNav.jsx";
 import "./ProductList.css";
 
-const HERO_IMG = "/imagenes/hero-moto.jpg"; // cámbialo si tu banner tiene otro nombre
-const FALLBACK_IMG = "/imagenes/placeholder-producto.jpg"; // opcional: pon un placeholder en public/imagenes
+const FALLBACK_IMG = "/imagenes/placeholder-producto.jpg";
 
 export default function ProductList() {
     const [loading, setLoading] = useState(true);
@@ -41,19 +41,9 @@ export default function ProductList() {
         const raw = localStorage.getItem("cart");
         const cart = raw ? JSON.parse(raw) : [];
         const idx = cart.findIndex((it) => it.id === p.id);
-        if (idx >= 0) {
-            cart[idx].qty += 1;
-        } else {
-            cart.push({
-            id: p.id,
-            nombre: p.nombre,
-            precio: p.precio,
-            imagen_url: p.imagen_url,
-            qty: 1,
-            });
-        }
+        if (idx >= 0) cart[idx].qty += 1;
+        else cart.push({ id: p.id, nombre: p.nombre, precio: p.precio, imagen_url: p.imagen_url, qty: 1 });
         localStorage.setItem("cart", JSON.stringify(cart));
-        // feedback simple
         window.dispatchEvent(new Event("cart-updated"));
         alert("Producto agregado al carrito.");
         } catch {
@@ -63,15 +53,14 @@ export default function ProductList() {
 
     return (
         <div className="catalog-page">
+        <QuickNav active="productos" />
+
         {/* HERO */}
         <section className="hero">
             <div className="hero-overlay" />
             <div className="hero-inner">
             <div className="hero-badge">Novedades</div>
-            <h1 className="hero-title">
-                Accesorios para <span>Motocicleta</span>
-                
-            </h1>
+            <h1 className="hero-title">Accesorios para <span>Motocicleta</span></h1>
             <p className="hero-sub">Calidad y rendimiento para tu próxima ruta.</p>
             <button className="btn hero-btn" onClick={() => document.getElementById("grid")?.scrollIntoView({ behavior: "smooth" })}>
                 Ver catálogo
@@ -86,17 +75,12 @@ export default function ProductList() {
             <span className="tools-count">{list.length} resultado(s)</span>
             </div>
             <div className="tools-right">
-            <input
-                className="input search"
-                placeholder="Buscar producto…"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-            />
+            <input className="input search" placeholder="Buscar producto…" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
         </section>
 
-        {/* CONTENT */}
         {err && <div className="alert error">{err}</div>}
+
         {loading ? (
             <div className="loading">Cargando productos…</div>
         ) : !list.length ? (
@@ -107,9 +91,7 @@ export default function ProductList() {
                 <article key={p.id} className="card">
                 <div
                     className="card-img"
-                    style={{
-                    backgroundImage: `url('${(p.imagen_url || "").trim() || FALLBACK_IMG}')`,
-                    }}
+                    style={{ backgroundImage: `url('${(p.imagen_url || "").trim() || FALLBACK_IMG}')` }}
                     onClick={() => nav(`/productos/${p.id}`)}
                     title={p.nombre}
                 />
@@ -127,4 +109,4 @@ export default function ProductList() {
         )}
         </div>
     );
-    }
+}

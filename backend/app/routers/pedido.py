@@ -1,15 +1,22 @@
+# backend/app/routers/pedido.py
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session, joinedload
+from pydantic import BaseModel, conint, confloat
+from sqlalchemy.orm import Session
+from sqlalchemy import func
+from typing import List, Optional
+
 from ..database import SessionLocal
+from ..models.usuario import Usuario
+from ..models.producto import Producto
 from ..models.pedido import Pedido
 from ..models.detalle_pedido import DetallePedido
-from ..schemas.pedido import PedidoCrear, PedidoRespuesta, EstadoPedidoIn
 from ..utils.seguridad import obtener_usuario_actual, verificar_admin
-from ..models.usuario import Usuario
 
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
-# Dependencia para obtener la sesión de base de datos
+# ------------------------
+# Helpers DB
+# ------------------------
 def get_db():
     db = SessionLocal()
     try:
@@ -17,88 +24,159 @@ def get_db():
     finally:
         db.close()
 
-# Crear pedido (cliente)
-@router.post("/", response_model=PedidoRespuesta)
+# ------------------------
+# Schemas de entrada/salida
+# ------------------------
+class DetalleIn(BaseModel):
+    producto_id: conint(gt=0)
+    cantidad: conint(gt=0)
+    precio_unitario: Optional[confloat(ge=0)] = None  # opcional, se valida vs BD
+
+class PedidoIn(BaseModel):
+    detalles: List[DetalleIn]
+    total: Optional[confloat(ge=0)] = None  # opcional (calculamos en servidor)
+
+# ------------------------
+# Crear pedido (cliente autenticado)
+# ------------------------
+@router.post("/", summary="Crear pedido del usuario autenticado")
 def crear_pedido(
-    datos: PedidoCrear,
+    payload: PedidoIn,
+    user: Usuario = Depends(obtener_usuario_actual),
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(obtener_usuario_actual)
 ):
-    nuevo_pedido = Pedido(usuario_id=usuario.id, total=datos.total)
-    db.add(nuevo_pedido)
-    db.commit()
-    db.refresh(nuevo_pedido)
+    if not payload.detalles:
+        raise HTTPException(status_code=400, detail="No hay detalles en el pedido.")
 
-    for item in datos.detalles:
-        detalle = DetallePedido(
-            pedido_id=nuevo_pedido.id,
-            producto_id=item.producto_id,
-            cantidad=item.cantidad,
-            precio_unitario=item.precio_unitario,
+    # Traer precios de productos de la BD (no confiar en el cliente)
+    ids = [d.producto_id for d in payload.detalles]
+    productos = db.query(Producto).filter(Producto.id.in_(ids)).all()
+    precio_map = {p.id: float(p.precio or 0) for p in productos}
+
+    # Validar que existan todos los productos
+    for d in payload.detalles:
+        if d.producto_id not in precio_map:
+            raise HTTPException(status_code=400, detail=f"Producto {d.producto_id} no existe.")
+
+    # Calcular total con precios de BD
+    total = 0.0
+    for d in payload.detalles:
+        precio = precio_map[d.producto_id]
+        total += precio * d.cantidad
+
+    # Crear cabecera
+    ped = Pedido(usuario_id=user.id, total=total, estado="abierto")
+    db.add(ped)
+    db.commit()
+    db.refresh(ped)
+
+    # Crear detalles usando precios de la BD
+    bulk = []
+    for d in payload.detalles:
+        bulk.append(
+            DetallePedido(
+                pedido_id=ped.id,
+                producto_id=d.producto_id,
+                cantidad=d.cantidad,
+                precio_unitario=precio_map[d.producto_id],
+            )
         )
-        db.add(detalle)
+    db.bulk_save_objects(bulk)
     db.commit()
 
-    pedido = (
-        db.query(Pedido)
-        .options(joinedload(Pedido.detalles))
-        .filter(Pedido.id == nuevo_pedido.id)
-        .first()
-    )
-    return pedido
+    return {"id": ped.id, "estado": ped.estado, "total": float(ped.total)}
 
-# Ver historial de pedidos (cliente)
-@router.get("/mis-pedidos", response_model=list[PedidoRespuesta])
-def ver_mis_pedidos(
-    db: Session = Depends(get_db), 
-    usuario: Usuario = Depends(obtener_usuario_actual),
-):
-    return db.query(Pedido).filter(Pedido.usuario_id == usuario.id).all()
-
-# Ver todos los pedidos (administrador)
-@router.get("/", response_model=list[PedidoRespuesta])
-def ver_todos_los_pedidos(
-    db: Session = Depends(get_db), 
-    _:Usuario = Depends(verificar_admin),
-):
-    return db.query(Pedido).all()
-
-#cambiar estado del Pedido (admin)
-
-@router.patch("/{pedido_id}/estado", response_model = PedidoRespuesta)
-@router.patch("/{pedido_id}/estado/", response_model = PedidoRespuesta)
-def cambiar_estado_pedido(
-    pedido_id: int,
-    body: EstadoPedidoIn,
+# ------------------------
+# Mis pedidos (cliente autenticado)
+# ------------------------
+@router.get("/", summary="Lista SOLO los pedidos del usuario autenticado")
+def mis_pedidos(
+    user: Usuario = Depends(obtener_usuario_actual),
     db: Session = Depends(get_db),
-    _: Usuario = Depends(verificar_admin),
 ):
-    pedido =(
+    rows = (
         db.query(Pedido)
-        .options(joinedload(Pedido.detalles))
-        .filter(Pedido.id == pedido_id)
-        .first()
+        .filter(Pedido.usuario_id == user.id)
+        .order_by(Pedido.id.desc())
+        .all()
     )
-    if not pedido:
+
+    # Devolvemos lista “liviana”; los detalles se piden en /pedidos/{id}
+    out = []
+    for p in rows:
+        out.append(
+            {
+                "id": p.id,
+                "usuario_id": p.usuario_id,
+                "fecha": (p.fecha.isoformat() if getattr(p, "fecha", None) else None),
+                "estado": p.estado,
+                "total": float(p.total or 0),
+            }
+        )
+    return out
+
+# ------------------------
+# Detalle de un pedido (cliente dueño o admin)
+# ------------------------
+@router.get("/{pedido_id}", summary="Detalle del pedido")
+def detalle_pedido(
+    pedido_id: int,
+    user: Usuario = Depends(obtener_usuario_actual),
+    db: Session = Depends(get_db),
+):
+    p = db.query(Pedido).filter(Pedido.id == pedido_id).first()
+    if not p:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
-    pedido.estado = body.estado
-    db.commit()
-    db.refresh(pedido)
-    return pedido
+    # Permitir si es dueño o admin
+    if (p.usuario_id != user.id) and (user.rol != "administrador"):
+        raise HTTPException(status_code=403, detail="No autorizado a ver este pedido")
 
-@router.get("/{pedido_id}", response_model=PedidoRespuesta)
-def obtener_pedido(
-    pedido_id: int,
-    db: Session = Depends(get_db),
-    _: Usuario = Depends(verificar_admin),
-):
-    pedido = (
-        db.query(Pedido)
-        .options(joinedload(Pedido.detalles))
-        .filter(Pedido.id == pedido_id)
-        .first()
+    # Cargar detalles y nombres de producto
+    dets = (
+        db.query(DetallePedido, Producto.nombre.label("producto_nombre"))
+        .join(Producto, Producto.id == DetallePedido.producto_id)
+        .filter(DetallePedido.pedido_id == p.id)
+        .all()
     )
-    if not pedido:
-        raise HTTPException(status_code=404, detail="Pedido no encontrado")
-    return pedido
+
+    detalles = []
+    for d, nombre in dets:
+        detalles.append(
+            {
+                "id": d.id,
+                "producto_id": d.producto_id,
+                "nombre": nombre,
+                "cantidad": int(d.cantidad or 0),
+                "precio_unitario": float(d.precio_unitario or 0),
+            }
+        )
+
+    return {
+        "id": p.id,
+        "usuario_id": p.usuario_id,
+        "fecha": (p.fecha.isoformat() if getattr(p, "fecha", None) else None),
+        "estado": p.estado,
+        "total": float(p.total or 0),
+        "detalles": detalles,
+    }
+
+# ------------------------
+# (Opcional) Lista de TODOS los pedidos (solo admin)
+# ------------------------
+@router.get("/todos/admin", summary="Lista todos los pedidos (admin)")
+def todos_pedidos_admin(
+    _: Usuario = Depends(verificar_admin),
+    db: Session = Depends(get_db),
+):
+    rows = db.query(Pedido).order_by(Pedido.id.desc()).all()
+    return [
+        {
+            "id": p.id,
+            "usuario_id": p.usuario_id,
+            "fecha": (p.fecha.isoformat() if getattr(p, "fecha", None) else None),
+            "estado": p.estado,
+            "total": float(p.total or 0),
+        }
+        for p in rows
+    ]

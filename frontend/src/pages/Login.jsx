@@ -60,6 +60,7 @@ export default function Login() {
 
             <form onSubmit={onSubmit} className="form">
             <label className="label">
+                <br></br><br></br>
                 Correo / Usuario <span className="req">*</span>
             </label>
             <input

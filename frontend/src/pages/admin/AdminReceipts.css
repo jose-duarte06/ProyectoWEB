@@ -1,0 +1,8 @@
+.ar-wrap { display:grid; gap:10px; }
+.ar-wrap h3 { margin:0; color:#fff; }
+.ar-table { width:100%; border-collapse: collapse; margin-top: 6px; }
+.ar-table th, .ar-table td { border-top:1px solid #1f1f1f; padding:8px; color:#e5e7eb; text-align:left; }
+.ar-actions { display:flex; gap:6px; }
+.btn.ok  { background:#16a34a; border:1px solid #166534; color:#fff; border-radius:8px; padding:6px 10px; }
+.btn.bad { background:#b91c1c; border:1px solid #7f1d1d; color:#fff; border-radius:8px; padding:6px 10px; }
+.admin-error { background:#7f1d1d; border:1px solid #ef4444; color:#fee2e2; padding:10px 12px; border-radius:12px; }

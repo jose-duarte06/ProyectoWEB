@@ -6,14 +6,17 @@ import ProductsAdmin from "./admin/Products.jsx";
 import OrdersAdmin from "./admin/Orders.jsx";
 import AdminDocs from "./admin/AdminDocs.jsx";
 import AdminAnalytics from "./admin/AdminAnalytics.jsx";
+import AdminReceipts from "./admin/AdminReceipts.jsx";
 
 import "./admin/AdminShell.css";
+
 
 const TABS = [
   { key: "productos", label: "Productos" },
   { key: "pedidos",   label: "Pedidos" },
   { key: "docs",      label: "Documentación" },
   { key: "analytics", label: "Analítica" },
+  { key: "comprobantes", label:"Comprobantes" },
 ];
 
 export default function Admin() {
@@ -86,6 +89,8 @@ export default function Admin() {
         {tab === "pedidos"    && <OrdersAdmin />}
         {tab === "docs"       && <AdminDocs />}
         {tab === "analytics"  && <AdminAnalytics />}
+        {tab == "comprobante" && <AdminReceipts />}
+        
       </main>
     </div>
   );
